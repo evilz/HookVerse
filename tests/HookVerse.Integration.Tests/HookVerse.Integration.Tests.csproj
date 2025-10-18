@@ -36,6 +36,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\HookVerse.Api\HookVerse.Api.csproj" />
+    <ProjectReference Include="..\..\src\HookVerse.Worker\HookVerse.Worker.csproj" />
   </ItemGroup>
 
 </Project>

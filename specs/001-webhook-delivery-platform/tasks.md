@@ -242,9 +242,9 @@ All paths follow the .NET solution structure from plan.md:
 
 ### Integration for User Story 2
 
-- [ ] T121 [US2] Add integration tests in `tests/HookVerse.Integration.Tests/MessageBusTests.cs` for RabbitMQ, Kafka, SQS
-- [ ] T122 [US2] Add logging for message consumption, processing, and acknowledgment
-- [ ] T123 [US2] Add OpenTelemetry tracing for message bus operations
+- [X] T121 [US2] Add integration tests in `tests/HookVerse.Integration.Tests/MessageBusTests.cs` for RabbitMQ, Kafka, SQS
+- [X] T122 [US2] Add logging for message consumption, processing, and acknowledgment
+- [X] T123 [US2] Add OpenTelemetry tracing for message bus operations
 
 **Checkpoint**: At this point, User Stories 1, 6, AND 2 work - webhooks can be sent via API or message bus
 
