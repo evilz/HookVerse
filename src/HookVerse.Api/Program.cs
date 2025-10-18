@@ -27,6 +27,9 @@ try
     // Add database and repositories
     builder.Services.AddDatabase(builder.Configuration);
 
+    // Add message bus
+    builder.Services.AddMessageBus(builder.Configuration);
+
     // Add authentication
     builder.Services.AddApiKeyAuthentication();
 

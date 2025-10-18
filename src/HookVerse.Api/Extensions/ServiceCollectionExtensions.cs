@@ -7,6 +7,7 @@ using HookVerse.Infrastructure.SchemaValidation;
 using HookVerse.Infrastructure.Metrics;
 using FluentValidation;
 using System.Diagnostics.Metrics;
+using MassTransit;
 
 namespace HookVerse.Api.Extensions;
 
@@ -83,6 +84,39 @@ public static class ServiceCollectionExtensions
             var meterFactory = sp.GetRequiredService<IMeterFactory>();
             var dbContext = sp.CreateScope().ServiceProvider.GetRequiredService<HookVerseDbContext>();
             return new SubscriptionMetrics(meterFactory, () => dbContext.Subscriptions.Count(s => s.IsActive));
+        });
+
+        return services;
+    }
+
+    /// <summary>
+    /// Add MassTransit message bus for webhook events
+    /// </summary>
+    public static IServiceCollection AddMessageBus(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddMassTransit(busConfig =>
+        {
+            var transport = configuration["MessageBus:Transport"] ?? "RabbitMQ";
+
+            if (transport.Equals("RabbitMQ", StringComparison.OrdinalIgnoreCase))
+            {
+                busConfig.UsingRabbitMq((context, cfg) =>
+                {
+                    var host = configuration["MessageBus:RabbitMQ:Host"] ?? "localhost";
+                    var portStr = configuration["MessageBus:RabbitMQ:Port"];
+                    var port = int.TryParse(portStr, out var p) ? p : 5672;
+                    var username = configuration["MessageBus:RabbitMQ:Username"] ?? "guest";
+                    var password = configuration["MessageBus:RabbitMQ:Password"] ?? "guest";
+
+                    cfg.Host(host, (ushort)port, "/", h =>
+                    {
+                        h.Username(username);
+                        h.Password(password);
+                    });
+
+                    cfg.ConfigureEndpoints(context);
+                });
+            }
         });
 
         return services;
