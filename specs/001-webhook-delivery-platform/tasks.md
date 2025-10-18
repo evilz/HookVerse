@@ -228,17 +228,17 @@ All paths follow the .NET solution structure from plan.md:
 
 ### Message Bus Integration for User Story 2
 
-- [ ] T113 [US2] Create `MessageBusWebhookConsumer` in `src/HookVerse.Worker/Consumers/MessageBusWebhookConsumer.cs` to consume from external queues
-- [ ] T114 [US2] Add message format mapping in consumer (external message → WebhookEventMessage)
-- [ ] T115 [US2] Configure external queue/topic bindings in `src/HookVerse.Worker/appsettings.json`
-- [ ] T116 [US2] Implement message acknowledgment logic (ack after all subscribers succeed)
-- [ ] T117 [US2] Implement dead-letter queue configuration in `src/HookVerse.Infrastructure/MessageBus/DeadLetterConfiguration.cs`
-- [ ] T118 [US2] Add message bus provider configuration (RabbitMQ, Kafka, SQS) in appsettings.json
+- [X] T113 [US2] Create `MessageBusWebhookConsumer` in `src/HookVerse.Worker/Consumers/MessageBusWebhookConsumer.cs` to consume from external queues
+- [X] T114 [US2] Add message format mapping in consumer (external message → WebhookEventMessage)
+- [X] T115 [US2] Configure external queue/topic bindings in `src/HookVerse.Worker/appsettings.json`
+- [X] T116 [US2] Implement message acknowledgment logic (ack after all subscribers succeed)
+- [X] T117 [US2] Implement dead-letter queue configuration in `src/HookVerse.Infrastructure/MessageBus/DeadLetterConfiguration.cs`
+- [X] T118 [US2] Add message bus provider configuration (RabbitMQ, Kafka, SQS) in appsettings.json
 
 ### API for User Story 2
 
-- [ ] T119 [P] [US2] Add POST /api/v1/message-bus/configure endpoint in `src/HookVerse.Api/Controllers/MessageBusController.cs` for connection setup
-- [ ] T120 [P] [US2] Add GET /api/v1/message-bus/status endpoint to check message bus health
+- [X] T119 [P] [US2] Add POST /api/v1/message-bus/configure endpoint in `src/HookVerse.Api/Controllers/MessageBusController.cs` for connection setup
+- [X] T120 [P] [US2] Add GET /api/v1/message-bus/status endpoint to check message bus health
 
 ### Integration for User Story 2
 

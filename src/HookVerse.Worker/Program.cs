@@ -64,6 +64,7 @@ try
     builder.Services.AddMassTransit(busConfig =>
     {
         busConfig.AddConsumer<WebhookDeliveryConsumer>();
+        busConfig.AddConsumer<MessageBusWebhookConsumer>();
 
         var transport = builder.Configuration["MessageBus:Transport"] ?? "RabbitMQ";
 
@@ -81,6 +82,26 @@ try
                 {
                     h.Username(username);
                     h.Password(password);
+                });
+
+                // Configure external webhooks queue with DLQ support
+                cfg.ReceiveEndpoint(builder.Configuration["MessageBus:ExternalWebhooks:QueueName"] ?? "external-webhooks", e =>
+                {
+                    // Set queue durability
+                    e.Durable = builder.Configuration.GetValue<bool>("MessageBus:ExternalWebhooks:Durable");
+                    e.AutoDelete = builder.Configuration.GetValue<bool>("MessageBus:ExternalWebhooks:AutoDelete");
+
+                    // Set prefetch count for concurrent message processing
+                    var prefetchCount = builder.Configuration.GetValue<int>("MessageBus:ExternalWebhooks:PrefetchCount");
+                    if (prefetchCount > 0)
+                    {
+                        e.PrefetchCount = prefetchCount;
+                    }
+
+                    // Configure retry policy with exponential backoff
+                    e.UseMessageRetry(r => r.Exponential(5, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(5), TimeSpan.FromSeconds(2)));
+
+                    e.ConfigureConsumer<MessageBusWebhookConsumer>(context);
                 });
 
                 cfg.ConfigureEndpoints(context);
