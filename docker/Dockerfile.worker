@@ -1,0 +1,35 @@
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy solution and project files
+COPY HookVerse.sln ./
+COPY src/HookVerse.Worker/HookVerse.Worker.csproj ./src/HookVerse.Worker/
+COPY src/HookVerse.Core/HookVerse.Core.csproj ./src/HookVerse.Core/
+COPY src/HookVerse.Infrastructure/HookVerse.Infrastructure.csproj ./src/HookVerse.Infrastructure/
+COPY src/HookVerse.Shared/HookVerse.Shared.csproj ./src/HookVerse.Shared/
+
+# Restore dependencies
+RUN dotnet restore src/HookVerse.Worker/HookVerse.Worker.csproj
+
+# Copy source code
+COPY src/HookVerse.Worker/ ./src/HookVerse.Worker/
+COPY src/HookVerse.Core/ ./src/HookVerse.Core/
+COPY src/HookVerse.Infrastructure/ ./src/HookVerse.Infrastructure/
+COPY src/HookVerse.Shared/ ./src/HookVerse.Shared/
+
+# Build and publish
+WORKDIR /src/src/HookVerse.Worker
+RUN dotnet publish -c Release -o /app/publish --no-restore
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS runtime
+WORKDIR /app
+
+# Create non-root user
+RUN adduser --disabled-password --gecos '' appuser && chown -R appuser /app
+USER appuser
+
+COPY --from=build /app/publish .
+
+ENTRYPOINT ["dotnet", "HookVerse.Worker.dll"]
