@@ -3,6 +3,8 @@ using HookVerse.Core.Interfaces;
 using HookVerse.Infrastructure.Data;
 using HookVerse.Infrastructure.Repositories;
 using HookVerse.Infrastructure.Services;
+using HookVerse.Infrastructure.SchemaValidation;
+using FluentValidation;
 
 namespace HookVerse.Api.Extensions;
 
@@ -33,6 +35,13 @@ public static class ServiceCollectionExtensions
         // Register generic repository
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
+        // Register specific repositories
+        services.AddScoped<ISubscriberRepository, SubscriberRepository>();
+        services.AddScoped<IEventTypeRepository, EventTypeRepository>();
+        services.AddScoped<IWebhookEventRepository, WebhookEventRepository>();
+        services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+        services.AddScoped<IDeliveryAttemptRepository, DeliveryAttemptRepository>();
+
         return services;
     }
 
@@ -50,7 +59,21 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddBusinessServices(this IServiceCollection services)
     {
-        // Register domain services here as they are created
+        // Register core business services
+        services.AddScoped<IWebhookService, WebhookService>();
+        services.AddScoped<ISignatureService, HmacSignatureService>();
+        services.AddScoped<IDeliveryService, DeliveryService>();
+        
+        // Register HttpClient for DeliveryService
+        services.AddHttpClient<IDeliveryService, DeliveryService>();
+
+        // Register schema validators
+        services.AddScoped<ISchemaValidator, JsonSchemaValidator>();
+        services.AddScoped<SchemaValidatorFactory>();
+
+        // Register FluentValidation
+        services.AddValidatorsFromAssemblyContaining<Program>();
+
         return services;
     }
 }

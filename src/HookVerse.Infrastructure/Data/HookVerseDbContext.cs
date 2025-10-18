@@ -10,11 +10,13 @@ public class HookVerseDbContext : DbContext
     {
     }
 
-    // DbSets will be added as entities are created
-    // public DbSet<Webhook> Webhooks => Set<Webhook>();
-    // public DbSet<WebhookDelivery> WebhookDeliveries => Set<WebhookDelivery>();
-    // public DbSet<Subscription> Subscriptions => Set<Subscription>();
-    // public DbSet<Tenant> Tenants => Set<Tenant>();
+    // DbSets for User Story 1 entities
+    public DbSet<Subscriber> Subscribers => Set<Subscriber>();
+    public DbSet<EventType> EventTypes => Set<EventType>();
+    public DbSet<SchemaDefinition> SchemaDefinitions => Set<SchemaDefinition>();
+    public DbSet<WebhookEvent> WebhookEvents => Set<WebhookEvent>();
+    public DbSet<Subscription> Subscriptions => Set<Subscription>();
+    public DbSet<DeliveryAttempt> DeliveryAttempts => Set<DeliveryAttempt>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
