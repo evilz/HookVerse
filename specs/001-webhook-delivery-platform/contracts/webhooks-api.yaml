@@ -1,0 +1,624 @@
+openapi: 3.0.3
+info:
+  title: HookVerse Webhooks API
+  description: API for sending webhooks and querying delivery status
+  version: 1.0.0
+  contact:
+    name: HookVerse Team
+    url: https://github.com/evilz/HookVerse
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.hookverse.io/v1
+    description: Production server
+  - url: https://api.hookverse.dev/v1
+    description: Development server
+
+security:
+  - ApiKeyAuth: []
+
+tags:
+  - name: Webhooks
+    description: Send and query webhook events
+  - name: Delivery
+    description: Query delivery status and attempts
+
+paths:
+  /webhooks:
+    post:
+      tags:
+        - Webhooks
+      summary: Send a webhook event
+      description: Submit a webhook event for delivery to all registered subscribers
+      operationId: sendWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendWebhookRequest'
+            examples:
+              orderCreated:
+                summary: Order created event
+                value:
+                  eventType: order.created
+                  eventVersion: "1.0.0"
+                  payload:
+                    orderId: "ORD-12345"
+                    customerEmail: "customer@example.com"
+                    amount: 99.99
+                    currency: "USD"
+                  metadata:
+                    source: "checkout-service"
+                    correlationId: "cor-xyz-789"
+      responses:
+        '202':
+          description: Webhook accepted for delivery
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendWebhookResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /webhooks/{webhookId}:
+    get:
+      tags:
+        - Webhooks
+      summary: Get webhook event details
+      description: Retrieve details of a specific webhook event
+      operationId: getWebhook
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+      responses:
+        '200':
+          description: Webhook event details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEventDetails'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /webhooks/{webhookId}/delivery:
+    get:
+      tags:
+        - Delivery
+      summary: Get delivery status
+      description: Get overall delivery status across all subscribers
+      operationId: getDeliveryStatus
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+      responses:
+        '200':
+          description: Delivery status summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeliveryStatus'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /webhooks/{webhookId}/attempts:
+    get:
+      tags:
+        - Delivery
+      summary: List delivery attempts
+      description: Get all delivery attempts for a webhook across all subscribers
+      operationId: listDeliveryAttempts
+      parameters:
+        - $ref: '#/components/parameters/WebhookId'
+        - name: subscriptionId
+          in: query
+          description: Filter by subscription
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: List of delivery attempts
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - attempts
+                  - pagination
+                properties:
+                  attempts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DeliveryAttempt'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /webhooks/search:
+    get:
+      tags:
+        - Webhooks
+      summary: Search webhook events
+      description: Search and filter webhook events
+      operationId: searchWebhooks
+      parameters:
+        - name: eventType
+          in: query
+          description: Filter by event type name
+          schema:
+            type: string
+        - name: from
+          in: query
+          description: Start date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: End date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: status
+          in: query
+          description: Filter by delivery status
+          schema:
+            type: string
+            enum: [pending, delivering, delivered, failed, dead_letter]
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - webhooks
+                  - pagination
+                properties:
+                  webhooks:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WebhookEventSummary'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+
+  parameters:
+    WebhookId:
+      name: webhookId
+      in: path
+      required: true
+      description: Unique webhook event identifier
+      schema:
+        type: string
+        format: uuid
+
+    Page:
+      name: page
+      in: query
+      description: Page number (1-indexed)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    PageSize:
+      name: pageSize
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    SendWebhookRequest:
+      type: object
+      required:
+        - eventType
+        - payload
+      properties:
+        eventType:
+          type: string
+          description: Event type name
+          example: order.created
+          pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
+        eventVersion:
+          type: string
+          description: Event type version (semantic versioning)
+          example: "1.0.0"
+          default: "1.0.0"
+          pattern: '^\d+\.\d+\.\d+$'
+        payload:
+          type: object
+          description: Event payload (arbitrary JSON)
+          additionalProperties: true
+        scheduledFor:
+          type: string
+          format: date-time
+          description: Scheduled delivery time (ISO 8601). If null, delivers immediately
+          nullable: true
+        metadata:
+          type: object
+          description: Additional metadata (max 20 key-value pairs)
+          additionalProperties:
+            type: string
+          maxProperties: 20
+        idempotencyKey:
+          type: string
+          description: Client-provided key to prevent duplicate webhooks
+          maxLength: 255
+          nullable: true
+
+    SendWebhookResponse:
+      type: object
+      required:
+        - webhookId
+        - eventType
+        - status
+        - subscriberCount
+        - createdAt
+      properties:
+        webhookId:
+          type: string
+          format: uuid
+          description: Unique webhook event identifier
+        eventType:
+          type: string
+          description: Event type name
+        status:
+          type: string
+          enum: [accepted, scheduled]
+          description: Webhook acceptance status
+        subscriberCount:
+          type: integer
+          description: Number of subscribers that will receive this webhook
+        createdAt:
+          type: string
+          format: date-time
+          description: Webhook creation timestamp
+        traceId:
+          type: string
+          description: Distributed trace ID for observability
+
+    WebhookEventDetails:
+      type: object
+      required:
+        - id
+        - eventType
+        - payload
+        - createdAt
+        - subscriberCount
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+        eventVersion:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        scheduledFor:
+          type: string
+          format: date-time
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+        subscriberCount:
+          type: integer
+        deliveredCount:
+          type: integer
+          description: Number of successful deliveries
+        failedCount:
+          type: integer
+          description: Number of failed deliveries
+        traceId:
+          type: string
+
+    WebhookEventSummary:
+      type: object
+      required:
+        - id
+        - eventType
+        - createdAt
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+        eventVersion:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [pending, delivering, delivered, failed, dead_letter]
+        subscriberCount:
+          type: integer
+        deliveredCount:
+          type: integer
+        failedCount:
+          type: integer
+
+    DeliveryStatus:
+      type: object
+      required:
+        - webhookId
+        - totalSubscribers
+        - delivered
+        - pending
+        - failed
+        - deadLetter
+      properties:
+        webhookId:
+          type: string
+          format: uuid
+        totalSubscribers:
+          type: integer
+        delivered:
+          type: integer
+          description: Successfully delivered count
+        pending:
+          type: integer
+          description: Pending delivery count
+        failed:
+          type: integer
+          description: Failed but retrying count
+        deadLetter:
+          type: integer
+          description: Permanently failed count
+
+    DeliveryAttempt:
+      type: object
+      required:
+        - id
+        - webhookEventId
+        - subscriptionId
+        - attemptNumber
+        - status
+        - startedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        webhookEventId:
+          type: string
+          format: uuid
+        subscriptionId:
+          type: string
+          format: uuid
+        subscriberName:
+          type: string
+          description: Subscriber display name
+        endpointUrl:
+          type: string
+          description: Target endpoint URL
+        attemptNumber:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [pending, delivering, delivered, failed, timeout, circuit_open, rejected, dead_letter]
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        durationMs:
+          type: integer
+          description: Duration in milliseconds
+          nullable: true
+        requestHeaders:
+          type: object
+          additionalProperties:
+            type: string
+          description: HTTP request headers sent
+        responseStatus:
+          type: integer
+          description: HTTP response status code
+          nullable: true
+        responseHeaders:
+          type: object
+          additionalProperties:
+            type: string
+          description: HTTP response headers received
+          nullable: true
+        responseBody:
+          type: string
+          description: HTTP response body (truncated to 10KB)
+          nullable: true
+        errorMessage:
+          type: string
+          description: Error description if failed
+          nullable: true
+        signature:
+          type: string
+          description: HMAC signature sent
+        nextRetryAt:
+          type: string
+          format: date-time
+          description: Next scheduled retry time
+          nullable: true
+        traceId:
+          type: string
+
+    Pagination:
+      type: object
+      required:
+        - page
+        - pageSize
+        - totalPages
+        - totalItems
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+        totalPages:
+          type: integer
+          minimum: 0
+        totalItems:
+          type: integer
+          minimum: 0
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error code
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+        traceId:
+          type: string
+          description: Trace ID for debugging
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "BAD_REQUEST"
+            message: "Invalid request parameters"
+            details:
+              eventType: "Event type must follow dot-notation format"
+
+    Unauthorized:
+      description: Unauthorized - invalid or missing API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "UNAUTHORIZED"
+            message: "Invalid API key"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "NOT_FOUND"
+            message: "Webhook event not found"
+
+    ValidationFailed:
+      description: Payload validation failed against schema
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "VALIDATION_FAILED"
+            message: "Payload does not match schema"
+            details:
+              errors:
+                - field: "orderId"
+                  message: "Required field missing"
+
+    PayloadTooLarge:
+      description: Payload exceeds size limit (1MB)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "PAYLOAD_TOO_LARGE"
+            message: "Payload size exceeds 1MB limit"
+            details:
+              payloadSize: 1048577
+              maxSize: 1048576
+
+    TooManyRequests:
+      description: Rate limit exceeded
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds until rate limit resets
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "TOO_MANY_REQUESTS"
+            message: "Rate limit exceeded. Try again in 60 seconds"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "INTERNAL_SERVER_ERROR"
+            message: "An unexpected error occurred"
+            traceId: "abc123xyz"

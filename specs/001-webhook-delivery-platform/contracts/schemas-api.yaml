@@ -1,0 +1,134 @@
+openapi: 3.0.3
+info:
+  title: HookVerse Schemas API
+  description: API for managing webhook event schemas
+  version: 1.0.0
+
+servers:
+  - url: https://api.hookverse.io/v1
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /event-types:
+    get:
+      summary: List event types
+      responses:
+        '200':
+          description: List of event types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventType'
+
+    post:
+      summary: Create event type
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventTypeRequest'
+      responses:
+        '201':
+          description: Event type created
+
+  /event-types/{eventType}/schema:
+    get:
+      summary: Get event type schema
+      parameters:
+        - name: eventType
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Schema definition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaDefinition'
+
+    put:
+      summary: Update event type schema
+      parameters:
+        - name: eventType
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSchemaRequest'
+      responses:
+        '200':
+          description: Schema updated
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    EventType:
+      type: object
+      properties:
+        name:
+          type: string
+        version:
+          type: string
+        description:
+          type: string
+        hasSchema:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateEventTypeRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
+        version:
+          type: string
+          default: "1.0.0"
+        description:
+          type: string
+
+    SchemaDefinition:
+      type: object
+      required:
+        - format
+        - content
+      properties:
+        format:
+          type: string
+          enum: [json_schema, avro, protobuf, dotnet_assembly]
+        content:
+          type: string
+          description: Schema content (format-specific)
+
+    UpdateSchemaRequest:
+      type: object
+      required:
+        - format
+        - content
+      properties:
+        format:
+          type: string
+          enum: [json_schema, avro, protobuf, dotnet_assembly]
+        content:
+          type: string

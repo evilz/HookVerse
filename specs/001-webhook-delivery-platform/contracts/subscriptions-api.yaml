@@ -1,0 +1,464 @@
+openapi: 3.0.3
+info:
+  title: HookVerse Subscriptions API
+  description: API for managing webhook subscriptions
+  version: 1.0.0
+  contact:
+    name: HookVerse Team
+    url: https://github.com/evilz/HookVerse
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.hookverse.io/v1
+    description: Production server
+  - url: https://api.hookverse.dev/v1
+    description: Development server
+
+security:
+  - ApiKeyAuth: []
+
+tags:
+  - name: Subscriptions
+    description: Manage webhook subscriptions
+
+paths:
+  /subscriptions:
+    get:
+      tags:
+        - Subscriptions
+      summary: List subscriptions
+      description: List all subscriptions for the authenticated subscriber
+      operationId: listSubscriptions
+      parameters:
+        - name: eventType
+          in: query
+          description: Filter by event type
+          schema:
+            type: string
+        - name: isActive
+          in: query
+          description: Filter by active status
+          schema:
+            type: boolean
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: List of subscriptions
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - subscriptions
+                  - pagination
+                properties:
+                  subscriptions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Subscription'
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - Subscriptions
+      summary: Create subscription
+      description: Create a new webhook subscription
+      operationId: createSubscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSubscriptionRequest'
+            examples:
+              basic:
+                summary: Basic subscription
+                value:
+                  eventType: order.created
+                  endpointUrl: https://api.myapp.com/webhooks
+                  secret: "your-secret-key-min-32-chars"
+              withFilters:
+                summary: Subscription with filters
+                value:
+                  eventType: order.created
+                  endpointUrl: https://api.myapp.com/webhooks
+                  secret: "your-secret-key-min-32-chars"
+                  filterExpression: "$.amount >= 100"
+                  customHeaders:
+                    Authorization: "Bearer token123"
+      responses:
+        '201':
+          description: Subscription created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+
+  /subscriptions/{subscriptionId}:
+    get:
+      tags:
+        - Subscriptions
+      summary: Get subscription
+      description: Get details of a specific subscription
+      operationId: getSubscription
+      parameters:
+        - $ref: '#/components/parameters/SubscriptionId'
+      responses:
+        '200':
+          description: Subscription details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    put:
+      tags:
+        - Subscriptions
+      summary: Update subscription
+      description: Update an existing subscription
+      operationId: updateSubscription
+      parameters:
+        - $ref: '#/components/parameters/SubscriptionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSubscriptionRequest'
+      responses:
+        '200':
+          description: Subscription updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      tags:
+        - Subscriptions
+      summary: Delete subscription
+      description: Delete a subscription (preserves delivery history)
+      operationId: deleteSubscription
+      parameters:
+        - $ref: '#/components/parameters/SubscriptionId'
+      responses:
+        '204':
+          description: Subscription deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /subscriptions/{subscriptionId}/pause:
+    post:
+      tags:
+        - Subscriptions
+      summary: Pause subscription
+      description: Temporarily pause webhook deliveries
+      operationId: pauseSubscription
+      parameters:
+        - $ref: '#/components/parameters/SubscriptionId'
+      responses:
+        '200':
+          description: Subscription paused
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /subscriptions/{subscriptionId}/resume:
+    post:
+      tags:
+        - Subscriptions
+      summary: Resume subscription
+      description: Resume paused webhook deliveries
+      operationId: resumeSubscription
+      parameters:
+        - $ref: '#/components/parameters/SubscriptionId'
+      responses:
+        '200':
+          description: Subscription resumed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Subscription'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+
+  parameters:
+    SubscriptionId:
+      name: subscriptionId
+      in: path
+      required: true
+      description: Unique subscription identifier
+      schema:
+        type: string
+        format: uuid
+
+    Page:
+      name: page
+      in: query
+      description: Page number (1-indexed)
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    PageSize:
+      name: pageSize
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    CreateSubscriptionRequest:
+      type: object
+      required:
+        - eventType
+        - endpointUrl
+        - secret
+      properties:
+        eventType:
+          type: string
+          description: Event type to subscribe to
+          example: order.created
+          pattern: '^[a-z0-9_]+(\.[a-z0-9_]+)+$'
+        endpointUrl:
+          type: string
+          format: uri
+          description: Webhook delivery endpoint (HTTPS required)
+          example: https://api.myapp.com/webhooks
+          pattern: '^https://'
+          maxLength: 2000
+        secret:
+          type: string
+          description: HMAC signature secret (min 32 characters)
+          minLength: 32
+          maxLength: 256
+        filterExpression:
+          type: string
+          description: JSONPath filter expression
+          example: "$.status == 'paid'"
+          maxLength: 500
+          nullable: true
+        customHeaders:
+          type: object
+          description: Custom HTTP headers to send with webhooks
+          additionalProperties:
+            type: string
+          maxProperties: 20
+          nullable: true
+        authType:
+          type: string
+          enum: [none, custom_headers, basic_auth, bearer_token]
+          default: none
+          description: Authentication type
+        authConfig:
+          type: object
+          description: Authentication configuration (format depends on authType)
+          nullable: true
+          example:
+            username: "api_user"
+            password: "api_password"
+
+    UpdateSubscriptionRequest:
+      type: object
+      properties:
+        endpointUrl:
+          type: string
+          format: uri
+          pattern: '^https://'
+          maxLength: 2000
+        secret:
+          type: string
+          minLength: 32
+          maxLength: 256
+        filterExpression:
+          type: string
+          maxLength: 500
+          nullable: true
+        customHeaders:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+        authType:
+          type: string
+          enum: [none, custom_headers, basic_auth, bearer_token]
+        authConfig:
+          type: object
+          nullable: true
+
+    Subscription:
+      type: object
+      required:
+        - id
+        - eventType
+        - endpointUrl
+        - isActive
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        eventType:
+          type: string
+        eventVersion:
+          type: string
+        endpointUrl:
+          type: string
+          format: uri
+        isActive:
+          type: boolean
+          description: Whether subscription is active
+        filterExpression:
+          type: string
+          nullable: true
+        customHeaders:
+          type: object
+          additionalProperties:
+            type: string
+          nullable: true
+          description: Header names only (values not returned for security)
+        authType:
+          type: string
+          enum: [none, custom_headers, basic_auth, bearer_token]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        lastDeliveryAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last successful delivery timestamp
+        deliveryStats:
+          type: object
+          description: Delivery statistics for this subscription
+          properties:
+            totalDeliveries:
+              type: integer
+            successfulDeliveries:
+              type: integer
+            failedDeliveries:
+              type: integer
+            averageLatencyMs:
+              type: integer
+              description: Average delivery latency in milliseconds
+
+    Pagination:
+      type: object
+      required:
+        - page
+        - pageSize
+        - totalPages
+        - totalItems
+      properties:
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+        totalPages:
+          type: integer
+          minimum: 0
+        totalItems:
+          type: integer
+          minimum: 0
+        hasNext:
+          type: boolean
+        hasPrevious:
+          type: boolean
+
+    Error:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+        traceId:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+    ValidationFailed:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "VALIDATION_FAILED"
+            message: "Endpoint URL validation failed"
+            details:
+              endpointUrl: "HTTPS required for webhook endpoints"
