@@ -38,37 +38,31 @@ git clone https://github.com/yourusername/HookVerse.git
 cd HookVerse
 ```
 
-### 2. Start dependencies with Docker
+### 2. Start dependencies with Docker Compose
 
 ```bash
-cd docker
-docker-compose up -d postgres rabbitmq redis
+docker-compose up -d
 ```
 
 This will start:
-- PostgreSQL on port 5432
-- RabbitMQ on ports 5672 (AMQP) and 15672 (Management UI)
-- Redis on port 6379
+- **PostgreSQL 16** on port `5432`
+- **RabbitMQ 3.13** on ports `5672` (AMQP) and `15672` (Management UI)
+- **Redis 7** on port `6379`
 
-### 3. Configure connection strings
+Access RabbitMQ Management UI at `http://localhost:15672` (guest/guest)
 
-Update `appsettings.Development.json` in each project with your connection strings, or use the defaults provided for Docker:
+> **Note**: To include pgAdmin for database management, run: `docker-compose --profile tools up -d`
+> Access pgAdmin at `http://localhost:5050` (admin@hookverse.local/admin123)
 
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Database=hookverse;Username=hookverse;Password=hookverse_dev_password"
-  },
-  "RabbitMQ": {
-    "Host": "localhost",
-    "Username": "hookverse",
-    "Password": "hookverse_dev_password"
-  },
-  "Redis": {
-    "ConnectionString": "localhost:6379,password=hookverse_dev_password"
-  }
-}
+For detailed Docker setup instructions, see [DOCKER.md](DOCKER.md)
+
+### 3. Verify services are running
+
+```bash
+docker-compose ps
 ```
+
+All services should show "healthy" status.
 
 ### 4. Run database migrations
 
