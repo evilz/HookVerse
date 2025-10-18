@@ -4,7 +4,9 @@ using HookVerse.Infrastructure.Data;
 using HookVerse.Infrastructure.Repositories;
 using HookVerse.Infrastructure.Services;
 using HookVerse.Infrastructure.SchemaValidation;
+using HookVerse.Infrastructure.Metrics;
 using FluentValidation;
+using System.Diagnostics.Metrics;
 
 namespace HookVerse.Api.Extensions;
 
@@ -63,6 +65,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IWebhookService, WebhookService>();
         services.AddScoped<ISignatureService, HmacSignatureService>();
         services.AddScoped<IDeliveryService, DeliveryService>();
+        services.AddScoped<ISubscriptionService, SubscriptionService>();
         
         // Register HttpClient for DeliveryService
         services.AddHttpClient<IDeliveryService, DeliveryService>();
@@ -73,6 +76,14 @@ public static class ServiceCollectionExtensions
 
         // Register FluentValidation
         services.AddValidatorsFromAssemblyContaining<Program>();
+
+        // Register metrics
+        services.AddSingleton<SubscriptionMetrics>(sp =>
+        {
+            var meterFactory = sp.GetRequiredService<IMeterFactory>();
+            var dbContext = sp.CreateScope().ServiceProvider.GetRequiredService<HookVerseDbContext>();
+            return new SubscriptionMetrics(meterFactory, () => dbContext.Subscriptions.Count(s => s.IsActive));
+        });
 
         return services;
     }

@@ -53,6 +53,26 @@ public class Subscription : Entity
     public string? AuthConfig { get; set; }
 
     /// <summary>
+    /// Gets or sets optional description for the subscription.
+    /// </summary>
+    public string? Description { get; set; }
+
+    /// <summary>
+    /// Gets or sets the timeout in seconds for webhook delivery (default: 30).
+    /// </summary>
+    public int TimeoutSeconds { get; set; } = 30;
+
+    /// <summary>
+    /// Gets or sets the maximum number of retry attempts (default: 5).
+    /// </summary>
+    public int MaxRetries { get; set; } = 5;
+
+    /// <summary>
+    /// Gets or sets when the subscription was paused.
+    /// </summary>
+    public DateTime? PausedAt { get; set; }
+
+    /// <summary>
     /// Gets or sets the last successful delivery timestamp.
     /// </summary>
     public DateTime? LastDeliveryAt { get; set; }

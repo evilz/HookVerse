@@ -49,6 +49,19 @@ public class SubscriptionConfiguration : IEntityTypeConfiguration<Subscription>
         builder.Property(e => e.AuthConfig);
         // TODO: Implement AuthConfig encryption at rest
 
+        builder.Property(e => e.Description)
+            .HasMaxLength(500);
+
+        builder.Property(e => e.TimeoutSeconds)
+            .IsRequired()
+            .HasDefaultValue(30);
+
+        builder.Property(e => e.MaxRetries)
+            .IsRequired()
+            .HasDefaultValue(5);
+
+        builder.Property(e => e.PausedAt);
+
         builder.Property(e => e.LastDeliveryAt);
 
         builder.Property(e => e.CreatedAt)

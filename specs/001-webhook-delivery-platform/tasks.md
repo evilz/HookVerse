@@ -192,29 +192,29 @@ All paths follow the .NET solution structure from plan.md:
 
 ### API Controllers for User Story 6
 
-- [ ] T096 [P] [US6] Create DTOs in `src/HookVerse.Api/Models/`: `CreateSubscriptionRequest`, `UpdateSubscriptionRequest`, `SubscriptionResponse`
-- [ ] T097 [US6] Create `SubscriptionsController` in `src/HookVerse.Api/Controllers/SubscriptionsController.cs` with CRUD endpoints
-- [ ] T098 [US6] Add POST /api/v1/subscriptions endpoint to create subscription
-- [ ] T099 [US6] Add GET /api/v1/subscriptions endpoint to list subscriber's subscriptions with pagination
-- [ ] T100 [US6] Add GET /api/v1/subscriptions/{id} endpoint to get subscription details
-- [ ] T101 [US6] Add PUT /api/v1/subscriptions/{id} endpoint to update subscription
-- [ ] T102 [US6] Add DELETE /api/v1/subscriptions/{id} endpoint to delete subscription
-- [ ] T103 [US6] Add POST /api/v1/subscriptions/{id}/pause endpoint to pause subscription
-- [ ] T104 [US6] Add POST /api/v1/subscriptions/{id}/resume endpoint to resume subscription
+- [X] T096 [P] [US6] Create DTOs in `src/HookVerse.Api/Models/`: `CreateSubscriptionRequest`, `UpdateSubscriptionRequest`, `SubscriptionResponse`
+- [X] T097 [US6] Create `SubscriptionsController` in `src/HookVerse.Api/Controllers/SubscriptionsController.cs` with CRUD endpoints
+- [X] T098 [US6] Add POST /api/v1/subscriptions endpoint to create subscription
+- [X] T099 [US6] Add GET /api/v1/subscriptions endpoint to list subscriber's subscriptions with pagination
+- [X] T100 [US6] Add GET /api/v1/subscriptions/{id} endpoint to get subscription details
+- [X] T101 [US6] Add PUT /api/v1/subscriptions/{id} endpoint to update subscription
+- [X] T102 [US6] Add DELETE /api/v1/subscriptions/{id} endpoint to delete subscription
+- [X] T103 [US6] Add POST /api/v1/subscriptions/{id}/pause endpoint to pause subscription
+- [X] T104 [US6] Add POST /api/v1/subscriptions/{id}/resume endpoint to resume subscription
 
 ### Business Logic for User Story 6
 
-- [ ] T105 [US6] Create `ISubscriptionService` interface in `src/HookVerse.Core/Interfaces/ISubscriptionService.cs`
-- [ ] T106 [US6] Implement `SubscriptionService` in `src/HookVerse.Core/Services/SubscriptionService.cs` with business rules
-- [ ] T107 [US6] Add validation for endpoint URL (HTTPS, no private IPs) in SubscriptionService
-- [ ] T108 [US6] Add validation for secret minimum length (32 characters) in SubscriptionService
-- [ ] T109 [US6] Add FluentValidation validators for subscription DTOs in `src/HookVerse.Api/Validators/`
+- [X] T105 [US6] Create `ISubscriptionService` interface in `src/HookVerse.Core/Interfaces/ISubscriptionService.cs`
+- [X] T106 [US6] Implement `SubscriptionService` in `src/HookVerse.Infrastructure/Services/SubscriptionService.cs` with business rules
+- [X] T107 [US6] Add validation for endpoint URL (HTTPS, no private IPs) in SubscriptionService
+- [X] T108 [US6] Add validation for secret minimum length (32 characters) in SubscriptionService
+- [X] T109 [US6] Add FluentValidation validators for subscription DTOs in `src/HookVerse.Api/Validators/`
 
 ### Integration for User Story 6
 
-- [ ] T110 [US6] Update Worker service to check IsActive status before delivery
-- [ ] T111 [US6] Add logging for subscription create, update, pause, resume, delete events
-- [ ] T112 [US6] Add OpenTelemetry metrics for subscription count and status changes
+- [X] T110 [US6] Update Worker service to check IsActive status before delivery
+- [X] T111 [US6] Add logging for subscription create, update, pause, resume, delete events
+- [X] T112 [US6] Add OpenTelemetry metrics for subscription count and status changes
 
 **Checkpoint**: At this point, User Stories 1 AND 6 should both work - subscribers can manage their subscriptions and receive webhooks
 
