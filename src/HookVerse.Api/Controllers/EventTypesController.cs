@@ -2,6 +2,7 @@ using Asp.Versioning;
 using HookVerse.Api.Models;
 using HookVerse.Core.Entities;
 using HookVerse.Core.Interfaces;
+using HookVerse.Infrastructure.Metrics;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Cryptography;
 using System.Text;
@@ -20,15 +21,18 @@ public class EventTypesController : ControllerBase
     private readonly IEventTypeRepository _eventTypeRepository;
     private readonly ISchemaDefinitionRepository _schemaRepository;
     private readonly ILogger<EventTypesController> _logger;
+    private readonly SchemaValidationMetrics? _metrics;
 
     public EventTypesController(
         IEventTypeRepository eventTypeRepository,
         ISchemaDefinitionRepository schemaRepository,
-        ILogger<EventTypesController> logger)
+        ILogger<EventTypesController> logger,
+        SchemaValidationMetrics? metrics = null)
     {
         _eventTypeRepository = eventTypeRepository;
         _schemaRepository = schemaRepository;
         _logger = logger;
+        _metrics = metrics;
     }
 
     /// <summary>
@@ -248,6 +252,9 @@ public class EventTypesController : ControllerBase
             _logger.LogInformation(
                 "Schema {SchemaId} created for event type {EventTypeId}",
                 schema.Id, eventType.Id);
+
+            // Record metrics
+            _metrics?.RecordSchemaCreated(eventType.Id, request.Format);
         }
         else
         {
@@ -267,6 +274,9 @@ public class EventTypesController : ControllerBase
             _logger.LogInformation(
                 "Schema {SchemaId} updated for event type {EventTypeId}",
                 schema.Id, eventType.Id);
+
+            // Record metrics
+            _metrics?.RecordSchemaUpdated(eventType.Id, request.Format);
         }
 
         var response = MapToSchemaResponse(schema);

@@ -86,6 +86,12 @@ public static class ServiceCollectionExtensions
             return new SubscriptionMetrics(meterFactory, () => dbContext.Subscriptions.Count(s => s.IsActive));
         });
 
+        services.AddSingleton<SchemaValidationMetrics>(sp =>
+        {
+            var meterFactory = sp.GetRequiredService<IMeterFactory>();
+            return new SchemaValidationMetrics(meterFactory);
+        });
+
         return services;
     }
 

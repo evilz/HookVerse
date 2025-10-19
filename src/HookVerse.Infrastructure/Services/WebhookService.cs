@@ -1,10 +1,12 @@
 using HookVerse.Core.Entities;
 using HookVerse.Core.Enums;
 using HookVerse.Core.Interfaces;
+using HookVerse.Infrastructure.Metrics;
 using HookVerse.Infrastructure.SchemaValidation;
 using HookVerse.Shared.Contracts;
 using MassTransit;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -25,6 +27,7 @@ public class WebhookService : IWebhookService
     private readonly SchemaValidatorFactory _validatorFactory;
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly ILogger<WebhookService> _logger;
+    private readonly SchemaValidationMetrics? _metrics;
 
     public WebhookService(
         IWebhookEventRepository webhookEventRepository,
@@ -33,7 +36,8 @@ public class WebhookService : IWebhookService
         ISubscriptionRepository subscriptionRepository,
         SchemaValidatorFactory validatorFactory,
         IPublishEndpoint publishEndpoint,
-        ILogger<WebhookService> logger)
+        ILogger<WebhookService> logger,
+        SchemaValidationMetrics? metrics = null)
     {
         _webhookEventRepository = webhookEventRepository;
         _eventTypeRepository = eventTypeRepository;
@@ -42,6 +46,7 @@ public class WebhookService : IWebhookService
         _validatorFactory = validatorFactory;
         _publishEndpoint = publishEndpoint;
         _logger = logger;
+        _metrics = metrics;
     }
 
     public async Task<WebhookEvent> SendWebhookAsync(
@@ -98,28 +103,66 @@ public class WebhookService : IWebhookService
         // Validate against schema if present and active
         if (eventType.SchemaDefinition != null && eventType.SchemaDefinition.IsActive)
         {
+            var stopwatch = Stopwatch.StartNew();
+            
             _logger.LogDebug(
                 "Validating payload against schema {SchemaId} (format: {Format})",
                 eventType.SchemaDefinition.Id,
                 eventType.SchemaDefinition.Format);
 
-            var schemaType = MapSchemaFormatToType(eventType.SchemaDefinition.Format);
-            var validator = _validatorFactory.GetValidator(schemaType);
-            var validationResult = await validator.ValidateAsync(payload, eventType.SchemaDefinition.Content, cancellationToken);
-            
-            if (!validationResult.IsValid)
+            try
             {
-                _logger.LogWarning(
-                    "Schema validation failed for EventType {EventTypeId}: {Errors}",
+                var schemaType = MapSchemaFormatToType(eventType.SchemaDefinition.Format);
+                var validator = _validatorFactory.GetValidator(schemaType);
+                var validationResult = await validator.ValidateAsync(payload, eventType.SchemaDefinition.Content, cancellationToken);
+                
+                stopwatch.Stop();
+                
+                if (!validationResult.IsValid)
+                {
+                    _logger.LogWarning(
+                        "Schema validation failed for EventType {EventTypeId}: {Errors}",
+                        eventTypeId,
+                        string.Join(", ", validationResult.Errors));
+
+                    // Record metrics for failure
+                    _metrics?.RecordValidationFailure(
+                        eventTypeId, 
+                        eventType.SchemaDefinition.Format,
+                        validationResult.Errors.FirstOrDefault() ?? "Unknown");
+                    _metrics?.RecordValidationDuration(
+                        stopwatch.Elapsed.TotalMilliseconds,
+                        eventType.SchemaDefinition.Format,
+                        success: false);
+
+                    throw new InvalidOperationException($"Payload does not match event type schema: {string.Join(", ", validationResult.Errors)}");
+                }
+
+                _logger.LogInformation(
+                    "Schema validation succeeded for EventType {EventTypeId} in {Duration}ms",
                     eventTypeId,
-                    string.Join(", ", validationResult.Errors));
+                    stopwatch.Elapsed.TotalMilliseconds);
 
-                throw new InvalidOperationException($"Payload does not match event type schema: {string.Join(", ", validationResult.Errors)}");
+                // Record metrics for success
+                _metrics?.RecordValidationSuccess(eventTypeId, eventType.SchemaDefinition.Format);
+                _metrics?.RecordValidationDuration(
+                    stopwatch.Elapsed.TotalMilliseconds,
+                    eventType.SchemaDefinition.Format,
+                    success: true);
             }
-
-            _logger.LogInformation(
-                "Schema validation succeeded for EventType {EventTypeId}",
-                eventTypeId);
+            catch (NotSupportedException ex)
+            {
+                stopwatch.Stop();
+                
+                _logger.LogError(ex, "Unsupported schema format for EventType {EventTypeId}", eventTypeId);
+                
+                _metrics?.RecordValidationFailure(
+                    eventTypeId,
+                    eventType.SchemaDefinition.Format,
+                    "UnsupportedFormat");
+                
+                throw;
+            }
         }
         else if (eventType.SchemaDefinition == null)
         {
