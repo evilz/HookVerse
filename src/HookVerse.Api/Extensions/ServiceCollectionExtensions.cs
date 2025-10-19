@@ -45,6 +45,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IWebhookEventRepository, WebhookEventRepository>();
         services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
         services.AddScoped<IDeliveryAttemptRepository, DeliveryAttemptRepository>();
+        services.AddScoped<IMockEndpointRepository, MockEndpointRepository>();
 
         return services;
     }
@@ -69,6 +70,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IDeliveryService, DeliveryService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<IAnalyticsService, AnalyticsService>();
+        services.AddScoped<IMockEndpointService, MockEndpointService>();
         
         // Register HttpClient for DeliveryService
         services.AddHttpClient<IDeliveryService, DeliveryService>();

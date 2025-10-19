@@ -62,6 +62,9 @@ try
     // Use CORS
     app.UseCors(app.Environment.IsDevelopment() ? "AllowAll" : "Production");
 
+    // Add mock endpoint middleware (before authentication)
+    app.UseMiddleware<MockEndpointMiddleware>();
+
     // Add API key authentication middleware
     app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
 

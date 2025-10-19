@@ -18,6 +18,10 @@ public class HookVerseDbContext : DbContext
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
     public DbSet<DeliveryAttempt> DeliveryAttempts => Set<DeliveryAttempt>();
 
+    // DbSets for User Story 4 - Mock Endpoints
+    public DbSet<MockEndpoint> MockEndpoints => Set<MockEndpoint>();
+    public DbSet<MockEndpointRequest> MockEndpointRequests => Set<MockEndpointRequest>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

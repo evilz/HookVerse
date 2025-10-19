@@ -350,31 +350,31 @@ All paths follow the .NET solution structure from plan.md:
 
 ### Domain Models for User Story 4
 
-- [ ] T163 [P] [US4] Create `MockEndpoint` entity in `src/HookVerse.Core/Entities/MockEndpoint.cs` with Id, Name, Url, ResponseStatus, ResponseBody, ResponseDelay
-- [ ] T164 [US4] Create `MockEndpointConfiguration` in `src/HookVerse.Infrastructure/Data/Configurations/MockEndpointConfiguration.cs`
-- [ ] T165 [US4] Add MockEndpoint to DbContext and create migration
+- [X] T163 [P] [US4] Create `MockEndpoint` entity in `src/HookVerse.Core/Entities/MockEndpoint.cs` with Id, Name, Url, ResponseStatus, ResponseBody, ResponseDelay
+- [X] T164 [US4] Create `MockEndpointConfiguration` in `src/HookVerse.Infrastructure/Data/Configurations/MockEndpointConfiguration.cs`
+- [X] T165 [US4] Add MockEndpoint to DbContext and create migration
 
 ### Repositories for User Story 4
 
-- [ ] T166 [US4] Create `IMockEndpointRepository` interface in `src/HookVerse.Core/Interfaces/IMockEndpointRepository.cs`
-- [ ] T167 [US4] Implement `MockEndpointRepository` in `src/HookVerse.Infrastructure/Repositories/MockEndpointRepository.cs`
+- [X] T166 [US4] Create `IMockEndpointRepository` interface in `src/HookVerse.Core/Interfaces/IMockEndpointRepository.cs`
+- [X] T167 [US4] Implement `MockEndpointRepository` in `src/HookVerse.Infrastructure/Repositories/MockEndpointRepository.cs`
 
 ### API Controllers for User Story 4
 
-- [ ] T168 [P] [US4] Create DTOs: `CreateMockEndpointRequest`, `MockEndpointResponse` in `src/HookVerse.Api/Models/`
-- [ ] T169 [US4] Create `MockEndpointsController` in `src/HookVerse.Api/Controllers/MockEndpointsController.cs`
-- [ ] T170 [US4] Add POST /api/v1/mock-endpoints endpoint to create mock endpoint
-- [ ] T171 [US4] Add GET /api/v1/mock-endpoints endpoint to list mock endpoints
-- [ ] T172 [US4] Add GET /api/v1/mock-endpoints/{id} endpoint to get mock endpoint details
-- [ ] T173 [US4] Add DELETE /api/v1/mock-endpoints/{id} endpoint to delete mock endpoint
-- [ ] T174 [US4] Add POST /api/v1/mock-endpoints/{id}/trigger endpoint to manually trigger test webhook
+- [X] T168 [P] [US4] Create DTOs: `CreateMockEndpointRequest`, `MockEndpointResponse` in `src/HookVerse.Api/Models/`
+- [X] T169 [US4] Create `MockEndpointsController` in `src/HookVerse.Api/Controllers/MockEndpointsController.cs`
+- [X] T170 [US4] Add POST /api/v1/mock-endpoints endpoint to create mock endpoint
+- [X] T171 [US4] Add GET /api/v1/mock-endpoints endpoint to list mock endpoints
+- [X] T172 [US4] Add GET /api/v1/mock-endpoints/{id} endpoint to get mock endpoint details
+- [X] T173 [US4] Add DELETE /api/v1/mock-endpoints/{id} endpoint to delete mock endpoint
+- [X] T174 [US4] Add POST /api/v1/mock-endpoints/{id}/trigger endpoint to manually trigger test webhook
 
 ### Business Logic for User Story 4
 
-- [ ] T175 [US4] Create `IMockEndpointService` interface in `src/HookVerse.Core/Interfaces/IMockEndpointService.cs`
-- [ ] T176 [US4] Implement `MockEndpointService` in `src/HookVerse.Core/Services/MockEndpointService.cs`
-- [ ] T177 [US4] Implement configurable response behavior (status codes, delays, body content)
-- [ ] T178 [US4] Add logging for all mock endpoint requests with full request/response details
+- [X] T175 [US4] Create `IMockEndpointService` interface in `src/HookVerse.Core/Interfaces/IMockEndpointService.cs`
+- [X] T176 [US4] Implement `MockEndpointService` in `src/HookVerse.Core/Services/MockEndpointService.cs`
+- [X] T177 [US4] Implement configurable response behavior (status codes, delays, body content)
+- [X] T178 [US4] Add logging for all mock endpoint requests with full request/response details
 
 ### Integration for User Story 4
 
