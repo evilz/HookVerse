@@ -1,11 +1,15 @@
 using HookVerse.Dashboard.Components;
 using HookVerse.Dashboard.Services;
+using HookVerse.Dashboard.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Add SignalR for real-time notifications
+builder.Services.AddSignalR();
 
 // Register HttpClient for API calls
 var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7001";
@@ -33,5 +37,8 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+// Map SignalR hub
+app.MapHub<WebhookHub>("/webhookhub");
 
 app.Run();
