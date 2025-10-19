@@ -1,0 +1,12 @@
+@page "/webhooks/{Id:guid}"
+@using HookVerse.Dashboard.Components
+
+<PageTitle>Webhook Details - HookVerse</PageTitle>
+
+<h3>Webhook Details</h3>
+
+<WebhookDetails WebhookId="@Id" />
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+}

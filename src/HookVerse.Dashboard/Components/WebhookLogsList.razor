@@ -1,0 +1,73 @@
+@inject HookVerse.Dashboard.Services.IWebhookApiClient ApiClient
+
+<div class="webhook-logs">
+    @if (isLoading)
+    {
+        <p>Loading webhooks...</p>
+    }
+    else if (error != null)
+    {
+        <p class="text-danger">@error</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>TraceId</th>
+                    <th>Event Type</th>
+                    <th>Created</th>
+                    <th>Status</th>
+                    <th>Attempts</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in items)
+                {
+                    <tr>
+                        <td>@item.TraceId</td>
+                        <td>@item.EventTypeName</td>
+                        <td>@item.CreatedAt.ToString("u")</td>
+                        <td>@item.Status</td>
+                        <td>@item.TotalAttempts</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private string? error;
+    private List<HookVerse.Dashboard.Models.WebhookListItem> items = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await ApiClient.SearchWebhooksAsync(page: 1, pageSize: 20);
+            if (result != null)
+            {
+                items = result.Items.Select(i => new HookVerse.Dashboard.Models.WebhookListItem
+                {
+                    Id = i.Id,
+                    EventTypeId = i.EventTypeId,
+                    EventTypeName = i.EventTypeName,
+                    TraceId = i.TraceId,
+                    CreatedAt = i.CreatedAt,
+                    Status = i.Status,
+                    TotalAttempts = i.TotalAttempts
+                }).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

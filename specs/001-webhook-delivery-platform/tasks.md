@@ -307,16 +307,16 @@ All paths follow the .NET solution structure from plan.md:
 
 ### Blazor Components for User Story 5
 
-- [ ] T145 [P] [US5] Create `WebhookLogsList.razor` component in `src/HookVerse.Dashboard/Components/WebhookLogsList.razor` with search and filtering
-- [ ] T146 [P] [US5] Create `WebhookDetails.razor` component in `src/HookVerse.Dashboard/Components/WebhookDetails.razor` showing attempt history
-- [ ] T147 [P] [US5] Create `DeliveryAttemptCard.razor` component in `src/HookVerse.Dashboard/Components/DeliveryAttemptCard.razor` with request/response details
-- [ ] T148 [P] [US5] Create `AnalyticsDashboard.razor` component in `src/HookVerse.Dashboard/Components/AnalyticsDashboard.razor` with success rates and latency
+- [X] T145 [P] [US5] Create `WebhookLogsList.razor` component in `src/HookVerse.Dashboard/Components/WebhookLogsList.razor` with search and filtering
+- [X] T146 [P] [US5] Create `WebhookDetails.razor` component in `src/HookVerse.Dashboard/Components/WebhookDetails.razor` showing attempt history
+- [X] T147 [P] [US5] Create `DeliveryAttemptCard.razor` component in `src/HookVerse.Dashboard/Components/DeliveryAttemptCard.razor` with request/response details
+- [X] T148 [P] [US5] Create `AnalyticsDashboard.razor` component in `src/HookVerse.Dashboard/Components/AnalyticsDashboard.razor` with success rates and latency
 
 ### Blazor Pages for User Story 5
 
-- [ ] T149 [US5] Create `Webhooks.razor` page in `src/HookVerse.Dashboard/Pages/Webhooks.razor` for webhook logs list
-- [ ] T150 [US5] Create `WebhookDetail.razor` page in `src/HookVerse.Dashboard/Pages/WebhookDetail.razor` for individual webhook details
-- [ ] T151 [US5] Create `Dashboard.razor` page in `src/HookVerse.Dashboard/Pages/Dashboard.razor` for analytics overview
+- [X] T149 [US5] Create `Webhooks.razor` page in `src/HookVerse.Dashboard/Pages/Webhooks.razor` for webhook logs list
+- [X] T150 [US5] Create `WebhookDetail.razor` page in `src/HookVerse.Dashboard/Pages/WebhookDetail.razor` for individual webhook details
+- [X] T151 [US5] Create `Dashboard.razor` page in `src/HookVerse.Dashboard/Pages/Dashboard.razor` for analytics overview
 
 ### Dashboard Services for User Story 5
 

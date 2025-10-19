@@ -1,0 +1,70 @@
+@inject HookVerse.Dashboard.Services.IWebhookApiClient ApiClient
+
+<div class="webhook-details">
+    @if (isLoading)
+    {
+        <p>Loading webhook details...</p>
+    }
+    else if (error != null)
+    {
+        <p class="text-danger">@error</p>
+    }
+    else if (detail != null)
+    {
+        <h4>@detail.EventTypeName (@detail.TraceId)</h4>
+        <pre>@detail.Payload</pre>
+
+        <h5>Delivery Attempts</h5>
+        @foreach (var a in detail.DeliveryAttempts)
+        {
+            <div class="card mb-2">
+                <div class="card-body">
+                    <strong>Attempt:</strong> @a.AttemptNumber
+                    <br />
+                    <strong>Status:</strong> @a.Status
+                    <br />
+                    <strong>Duration (ms):</strong> @a.ResponseTimeMs
+                    <br />
+                    <strong>Status Code:</strong> @a.ResponseStatusCode
+                    <br />
+                    <details>
+                        <summary>Response</summary>
+                        <pre>@a.ResponseBody</pre>
+                    </details>
+                    @if (!string.IsNullOrEmpty(a.ErrorMessage))
+                    {
+                        <div class="text-danger">
+                            <strong>Error:</strong> @a.ErrorMessage
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public Guid WebhookId { get; set; }
+
+    private bool isLoading = true;
+    private string? error;
+    private HookVerse.Dashboard.Models.WebhookDetailResponse? detail;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        error = null;
+        try
+        {
+            detail = await ApiClient.GetWebhookDetailsAsync(WebhookId);
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
