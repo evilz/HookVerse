@@ -258,42 +258,42 @@ All paths follow the .NET solution structure from plan.md:
 
 ### Domain Models for User Story 3
 
-- [ ] T124 [P] [US3] Create `SchemaDefinition` entity in `src/HookVerse.Core/Entities/SchemaDefinition.cs` with Id, EventTypeId, Format, Content, ContentHash
-- [ ] T125 [P] [US3] Create `SchemaFormat` enum in `src/HookVerse.Core/ValueObjects/SchemaFormat.cs` with JsonSchema, Avro, Protobuf, DotNetAssembly
+- [X] T124 [P] [US3] Create `SchemaDefinition` entity in `src/HookVerse.Core/Entities/SchemaDefinition.cs` with Id, EventTypeId, Format, Content, ContentHash
+- [X] T125 [P] [US3] Create `SchemaFormat` enum in `src/HookVerse.Core/ValueObjects/SchemaFormat.cs` with JsonSchema, Avro, Protobuf, DotNetAssembly
 
 ### EF Core Configuration for User Story 3
 
-- [ ] T126 [US3] Create `SchemaDefinitionConfiguration` in `src/HookVerse.Infrastructure/Data/Configurations/SchemaDefinitionConfiguration.cs`
-- [ ] T127 [US3] Add SchemaDefinition to `HookVerseDbContext` DbSet
-- [ ] T128 [US3] Create migration with `dotnet ef migrations add AddSchemaDefinition`
+- [X] T126 [US3] Create `SchemaDefinitionConfiguration` in `src/HookVerse.Infrastructure/Data/Configurations/SchemaDefinitionConfiguration.cs`
+- [X] T127 [US3] Add SchemaDefinition to `HookVerseDbContext` DbSet
+- [X] T128 [US3] Create migration with `dotnet ef migrations add AddSchemaDefinition`
 
 ### Repositories for User Story 3
 
-- [ ] T129 [US3] Create `ISchemaDefinitionRepository` interface in `src/HookVerse.Core/Interfaces/ISchemaDefinitionRepository.cs`
-- [ ] T130 [US3] Implement `SchemaDefinitionRepository` in `src/HookVerse.Infrastructure/Repositories/SchemaDefinitionRepository.cs`
+- [X] T129 [US3] Create `ISchemaDefinitionRepository` interface in `src/HookVerse.Core/Interfaces/ISchemaDefinitionRepository.cs`
+- [X] T130 [US3] Implement `SchemaDefinitionRepository` in `src/HookVerse.Infrastructure/Repositories/SchemaDefinitionRepository.cs`
 
 ### API Controllers for User Story 3
 
-- [ ] T131 [P] [US3] Create DTOs: `CreateEventTypeRequest`, `AttachSchemaRequest`, `SchemaResponse` in `src/HookVerse.Api/Models/`
-- [ ] T132 [US3] Create `EventTypesController` in `src/HookVerse.Api/Controllers/EventTypesController.cs` with CRUD endpoints
-- [ ] T133 [US3] Add POST /api/v1/event-types endpoint to create event type
-- [ ] T134 [US3] Add GET /api/v1/event-types endpoint to list event types
-- [ ] T135 [US3] Add GET /api/v1/event-types/{name} endpoint to get event type details
-- [ ] T136 [US3] Add PUT /api/v1/event-types/{name}/schema endpoint to attach/update schema
-- [ ] T137 [US3] Add GET /api/v1/event-types/{name}/schema endpoint to retrieve schema
+- [X] T131 [P] [US3] Create DTOs: `CreateEventTypeRequest`, `AttachSchemaRequest`, `SchemaResponse` in `src/HookVerse.Api/Models/`
+- [X] T132 [US3] Create `EventTypesController` in `src/HookVerse.Api/Controllers/EventTypesController.cs` with CRUD endpoints
+- [X] T133 [US3] Add POST /api/v1/event-types endpoint to create event type
+- [X] T134 [US3] Add GET /api/v1/event-types endpoint to list event types
+- [X] T135 [US3] Add GET /api/v1/event-types/{name} endpoint to get event type details
+- [X] T136 [US3] Add PUT /api/v1/event-types/{name}/schema endpoint to attach/update schema
+- [X] T137 [US3] Add GET /api/v1/event-types/{name}/schema endpoint to retrieve schema
 
 ### Business Logic for User Story 3
 
-- [ ] T138 [US3] Create `ISchemaService` interface in `src/HookVerse.Core/Interfaces/ISchemaService.cs`
-- [ ] T139 [US3] Implement `SchemaService` in `src/HookVerse.Core/Services/SchemaService.cs` with validation orchestration
-- [ ] T140 [US3] Update `WebhookService` to validate payload against schema before publishing
-- [ ] T141 [US3] Add schema validation error handling and descriptive error messages
+- [X] T138 [US3] Create `ISchemaService` interface in `src/HookVerse.Core/Interfaces/ISchemaService.cs`
+- [X] T139 [US3] Implement `SchemaService` in `src/HookVerse.Core/Services/SchemaService.cs` with validation orchestration
+- [X] T140 [US3] Update `WebhookService` to validate payload against schema before publishing
+- [X] T141 [US3] Add schema validation error handling and descriptive error messages
 
 ### Integration for User Story 3
 
-- [ ] T142 [US3] Add schema validation to webhook send pipeline in `WebhooksController`
-- [ ] T143 [US3] Add logging for schema validation success, failure, and schema updates
-- [ ] T144 [US3] Add OpenTelemetry metrics for schema validation rate and errors
+- [X] T142 [US3] Add schema validation to webhook send pipeline in `WebhooksController`
+- [X] T143 [US3] Add logging for schema validation success, failure, and schema updates
+- [X] T144 [US3] Add OpenTelemetry metrics for schema validation rate and errors
 
 **Checkpoint**: User Stories 1, 6, 2, AND 3 work - schemas validate webhooks before delivery
 
