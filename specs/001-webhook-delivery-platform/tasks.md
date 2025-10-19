@@ -334,9 +334,9 @@ All paths follow the .NET solution structure from plan.md:
 ### Integration for User Story 5
 
 - [X] T159 [US5] Configure SignalR hub in `src/HookVerse.Dashboard/Hubs/WebhookHub.cs` for real-time updates
-- [ ] T160 [US5] Add real-time delivery notifications to dashboard components
+- [X] T160 [US5] Add real-time delivery notifications to dashboard components
 - [X] T161 [US5] Add responsive CSS styling in `src/HookVerse.Dashboard/wwwroot/css/site.css`
-- [ ] T162 [US5] Configure dashboard authentication with ASP.NET Core Identity
+- [X] T162 [US5] Configure dashboard authentication with ASP.NET Core Identity
 
 **Checkpoint**: User Stories 1, 6, 2, 3, AND 5 work - subscribers can debug webhooks via portal
 

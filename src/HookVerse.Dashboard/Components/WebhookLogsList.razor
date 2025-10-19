@@ -1,4 +1,6 @@
 @inject HookVerse.Dashboard.Services.IWebhookApiClient ApiClient
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
 
 <div class="webhook-logs">
     @if (isLoading)
@@ -11,6 +13,14 @@
     }
     else
     {
+        @if (!string.IsNullOrEmpty(notificationMessage))
+        {
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                @notificationMessage
+                <button type="button" class="btn-close" @onclick="() => notificationMessage = null"></button>
+            </div>
+        }
+
         <table class="table">
             <thead>
                 <tr>
@@ -40,9 +50,74 @@
 @code {
     private bool isLoading = true;
     private string? error;
+    private string? notificationMessage;
     private List<HookVerse.Dashboard.Models.WebhookListItem> items = new();
+    private HubConnection? hubConnection;
 
     protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await ApiClient.SearchWebhooksAsync(page: 1, pageSize: 20);
+            if (result != null)
+            {
+                items = result.Items.Select(i => new HookVerse.Dashboard.Models.WebhookListItem
+                {
+                    Id = i.Id,
+                    EventTypeId = i.EventTypeId,
+                    EventTypeName = i.EventTypeName,
+                    TraceId = i.TraceId,
+                    CreatedAt = i.CreatedAt,
+                    Status = i.Status,
+                    TotalAttempts = i.TotalAttempts
+                }).ToList();
+            }
+
+            // Initialize SignalR connection
+            await InitializeSignalRConnection();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task InitializeSignalRConnection()
+    {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl("/webhookhub")
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On<object>("WebhookDelivered", async (data) =>
+            {
+                notificationMessage = $"Webhook delivered at {DateTime.UtcNow:HH:mm:ss}";
+                await RefreshWebhooks();
+                StateHasChanged();
+            });
+
+            hubConnection.On<object>("DeliveryAttempt", async (data) =>
+            {
+                notificationMessage = $"Delivery attempt at {DateTime.UtcNow:HH:mm:ss}";
+                StateHasChanged();
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            // SignalR connection is optional, don't fail if it's not available
+            Console.WriteLine($"SignalR connection failed: {ex.Message}");
+        }
+    }
+
+    private async Task RefreshWebhooks()
     {
         try
         {
@@ -63,11 +138,15 @@
         }
         catch (Exception ex)
         {
-            error = ex.Message;
+            Console.WriteLine($"Failed to refresh webhooks: {ex.Message}");
         }
-        finally
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
         {
-            isLoading = false;
+            await hubConnection.DisposeAsync();
         }
     }
 }

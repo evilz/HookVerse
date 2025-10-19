@@ -1,6 +1,7 @@
 using HookVerse.Dashboard.Components;
 using HookVerse.Dashboard.Services;
 using HookVerse.Dashboard.Hubs;
+using HookVerse.Dashboard.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +32,9 @@ if (!app.Environment.IsDevelopment())
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
+
+// Use dashboard authentication middleware
+app.UseDashboardAuthentication();
 
 app.UseAntiforgery();
 
