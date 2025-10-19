@@ -1,5 +1,7 @@
 using HookVerse.Core.Entities;
+using HookVerse.Core.Enums;
 using HookVerse.Core.Interfaces;
+using HookVerse.Infrastructure.SchemaValidation;
 using HookVerse.Shared.Contracts;
 using MassTransit;
 using Microsoft.Extensions.Logging;
@@ -20,7 +22,7 @@ public class WebhookService : IWebhookService
     private readonly IEventTypeRepository _eventTypeRepository;
     private readonly ISubscriberRepository _subscriberRepository;
     private readonly ISubscriptionRepository _subscriptionRepository;
-    private readonly ISchemaValidator _schemaValidator;
+    private readonly SchemaValidatorFactory _validatorFactory;
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly ILogger<WebhookService> _logger;
 
@@ -29,7 +31,7 @@ public class WebhookService : IWebhookService
         IEventTypeRepository eventTypeRepository,
         ISubscriberRepository subscriberRepository,
         ISubscriptionRepository subscriptionRepository,
-        ISchemaValidator schemaValidator,
+        SchemaValidatorFactory validatorFactory,
         IPublishEndpoint publishEndpoint,
         ILogger<WebhookService> logger)
     {
@@ -37,7 +39,7 @@ public class WebhookService : IWebhookService
         _eventTypeRepository = eventTypeRepository;
         _subscriberRepository = subscriberRepository;
         _subscriptionRepository = subscriptionRepository;
-        _schemaValidator = schemaValidator;
+        _validatorFactory = validatorFactory;
         _publishEndpoint = publishEndpoint;
         _logger = logger;
     }
@@ -93,14 +95,39 @@ public class WebhookService : IWebhookService
             throw new InvalidOperationException("Payload is not valid JSON", ex);
         }
 
-        // Validate against schema if present
-        if (eventType.SchemaDefinition != null)
+        // Validate against schema if present and active
+        if (eventType.SchemaDefinition != null && eventType.SchemaDefinition.IsActive)
         {
-            var validationResult = await _schemaValidator.ValidateAsync(payload, eventType.SchemaDefinition.Content, cancellationToken);
+            _logger.LogDebug(
+                "Validating payload against schema {SchemaId} (format: {Format})",
+                eventType.SchemaDefinition.Id,
+                eventType.SchemaDefinition.Format);
+
+            var schemaType = MapSchemaFormatToType(eventType.SchemaDefinition.Format);
+            var validator = _validatorFactory.GetValidator(schemaType);
+            var validationResult = await validator.ValidateAsync(payload, eventType.SchemaDefinition.Content, cancellationToken);
+            
             if (!validationResult.IsValid)
             {
+                _logger.LogWarning(
+                    "Schema validation failed for EventType {EventTypeId}: {Errors}",
+                    eventTypeId,
+                    string.Join(", ", validationResult.Errors));
+
                 throw new InvalidOperationException($"Payload does not match event type schema: {string.Join(", ", validationResult.Errors)}");
             }
+
+            _logger.LogInformation(
+                "Schema validation succeeded for EventType {EventTypeId}",
+                eventTypeId);
+        }
+        else if (eventType.SchemaDefinition == null)
+        {
+            _logger.LogDebug("No schema defined for EventType {EventTypeId}, skipping validation", eventTypeId);
+        }
+        else
+        {
+            _logger.LogDebug("Schema for EventType {EventTypeId} is inactive, skipping validation", eventTypeId);
         }
 
         // Generate trace ID
@@ -170,14 +197,28 @@ public class WebhookService : IWebhookService
     public async Task<bool> ValidatePayloadAsync(Guid eventTypeId, string payload, CancellationToken cancellationToken = default)
     {
         var eventType = await _eventTypeRepository.GetByIdAsync(eventTypeId, cancellationToken);
-        if (eventType?.SchemaDefinition == null)
+        if (eventType?.SchemaDefinition == null || !eventType.SchemaDefinition.IsActive)
         {
-            // No schema to validate against
+            // No schema to validate against or schema is inactive
             return true;
         }
 
-        var validationResult = await _schemaValidator.ValidateAsync(payload, eventType.SchemaDefinition.Content, cancellationToken);
+        var schemaType = MapSchemaFormatToType(eventType.SchemaDefinition.Format);
+        var validator = _validatorFactory.GetValidator(schemaType);
+        var validationResult = await validator.ValidateAsync(payload, eventType.SchemaDefinition.Content, cancellationToken);
         return validationResult.IsValid;
+    }
+
+    private static string MapSchemaFormatToType(SchemaFormat format)
+    {
+        return format switch
+        {
+            SchemaFormat.JsonSchema => "json-schema",
+            SchemaFormat.Avro => "avro",
+            SchemaFormat.Protobuf => "protobuf",
+            SchemaFormat.DotNetAssembly => "dotnet-assembly",
+            _ => throw new NotSupportedException($"Schema format {format} is not supported")
+        };
     }
 
     private static string ComputeSha256Hash(string input)
