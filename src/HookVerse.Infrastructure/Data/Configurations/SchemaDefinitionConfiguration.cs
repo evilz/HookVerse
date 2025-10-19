@@ -30,6 +30,19 @@ public class SchemaDefinitionConfiguration : IEntityTypeConfiguration<SchemaDefi
             .IsRequired()
             .HasMaxLength(64);
 
+        builder.Property(e => e.Version)
+            .IsRequired()
+            .HasDefaultValue(1);
+
+        builder.Property(e => e.IsActive)
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        builder.Property(e => e.Description)
+            .HasMaxLength(500);
+
+        builder.Property(e => e.LastValidatedAt);
+
         builder.Property(e => e.CreatedAt)
             .IsRequired();
 
@@ -43,6 +56,9 @@ public class SchemaDefinitionConfiguration : IEntityTypeConfiguration<SchemaDefi
 
         builder.HasIndex(e => e.ContentHash)
             .HasDatabaseName("IX_SchemaDefinitions_ContentHash");
+
+        builder.HasIndex(e => e.IsActive)
+            .HasDatabaseName("IX_SchemaDefinitions_IsActive");
 
         // Relationship
         builder.HasOne(e => e.EventType)

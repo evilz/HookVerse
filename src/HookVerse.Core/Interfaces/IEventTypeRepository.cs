@@ -8,6 +8,15 @@ namespace HookVerse.Core.Interfaces;
 public interface IEventTypeRepository : IRepository<EventType>
 {
     /// <summary>
+    /// Gets an event type by name and subscriber ID (latest version).
+    /// </summary>
+    /// <param name="name">The event type name.</param>
+    /// <param name="subscriberId">The subscriber ID.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The event type if found, otherwise null.</returns>
+    Task<EventType?> GetByNameAndSubscriberAsync(string name, Guid subscriberId, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Gets an event type by name, version, and subscriber ID.
     /// </summary>
     /// <param name="name">The event type name.</param>

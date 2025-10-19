@@ -14,6 +14,15 @@ public class EventTypeRepository : Repository<EventType>, IEventTypeRepository
     {
     }
 
+    public async Task<EventType?> GetByNameAndSubscriberAsync(string name, Guid subscriberId, CancellationToken cancellationToken = default)
+    {
+        return await _context.EventTypes
+            .Include(et => et.SchemaDefinition)
+            .Where(et => et.Name == name && et.SubscriberId == subscriberId)
+            .OrderByDescending(et => et.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
     public async Task<EventType?> GetByNameVersionSubscriberAsync(string name, string version, Guid subscriberId, CancellationToken cancellationToken = default)
     {
         return await _context.EventTypes
