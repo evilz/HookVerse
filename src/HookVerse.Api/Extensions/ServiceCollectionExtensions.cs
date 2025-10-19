@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using HookVerse.Core.Interfaces;
+using HookVerse.Core.Services;
 using HookVerse.Infrastructure.Data;
 using HookVerse.Infrastructure.Repositories;
 using HookVerse.Infrastructure.Services;
@@ -67,6 +68,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISignatureService, HmacSignatureService>();
         services.AddScoped<IDeliveryService, DeliveryService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
+        services.AddScoped<IAnalyticsService, AnalyticsService>();
         
         // Register HttpClient for DeliveryService
         services.AddHttpClient<IDeliveryService, DeliveryService>();

@@ -47,4 +47,44 @@ public class WebhookEventRepository : Repository<WebhookEvent>, IWebhookEventRep
             .Include(we => we.EventType)
             .FirstOrDefaultAsync(we => we.Id == id, cancellationToken);
     }
+
+    public async Task<(IEnumerable<WebhookEvent> Events, int TotalCount)> SearchAsync(
+        Guid subscriberId,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        Guid? eventTypeId = null,
+        int skip = 0,
+        int take = 20,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.WebhookEvents
+            .Include(we => we.EventType)
+            .Include(we => we.DeliveryAttempts)
+            .Where(we => we.SubscriberId == subscriberId);
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(we => we.CreatedAt >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(we => we.CreatedAt <= endDate.Value);
+        }
+
+        if (eventTypeId.HasValue)
+        {
+            query = query.Where(we => we.EventTypeId == eventTypeId.Value);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var events = await query
+            .OrderByDescending(we => we.CreatedAt)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        return (events, totalCount);
+    }
 }

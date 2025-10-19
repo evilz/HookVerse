@@ -248,4 +248,103 @@ public class WebhooksController : ControllerBase
 
         return Ok(attempts);
     }
+
+    /// <summary>
+    /// Search webhooks with filtering and pagination.
+    /// </summary>
+    /// <param name="startDate">Optional start date filter.</param>
+    /// <param name="endDate">Optional end date filter.</param>
+    /// <param name="eventTypeId">Optional event type ID filter.</param>
+    /// <param name="page">Page number (1-based).</param>
+    /// <param name="pageSize">Number of items per page.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Paginated webhook search results.</returns>
+    [HttpGet("search")]
+    [ProducesResponseType(typeof(PaginatedResponse<WebhookSearchItemDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<PaginatedResponse<WebhookSearchItemDto>>> SearchWebhooks(
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
+        [FromQuery] Guid? eventTypeId = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
+    {
+        // Get subscriber ID from authenticated context
+        var subscriberId = HttpContext.Items["SubscriberId"] as Guid?;
+        if (!subscriberId.HasValue)
+        {
+            return Unauthorized(new { error = "Invalid or missing API key" });
+        }
+
+        try
+        {
+            // Ensure valid pagination
+            page = Math.Max(page, 1);
+            pageSize = Math.Min(Math.Max(pageSize, 1), 100);
+            var skip = (page - 1) * pageSize;
+
+            _logger.LogInformation(
+                "Searching webhooks for subscriber {SubscriberId}, page {Page}, pageSize {PageSize}",
+                subscriberId.Value, page, pageSize);
+
+            // Get webhook event repository
+            var webhookEventRepository = HttpContext.RequestServices.GetRequiredService<IWebhookEventRepository>();
+
+            var (events, totalCount) = await webhookEventRepository.SearchAsync(
+                subscriberId.Value,
+                startDate,
+                endDate,
+                eventTypeId,
+                skip,
+                pageSize,
+                cancellationToken);
+
+            var items = events.Select(e => new WebhookSearchItemDto
+            {
+                Id = e.Id,
+                EventTypeId = e.EventTypeId,
+                EventTypeName = e.EventType?.Name ?? "Unknown",
+                TraceId = e.TraceId,
+                CreatedAt = e.CreatedAt,
+                ScheduledFor = e.ScheduledFor,
+                PayloadSizeBytes = e.PayloadSizeBytes,
+                TotalAttempts = e.DeliveryAttempts.Count,
+                SuccessfulAttempts = e.DeliveryAttempts.Count(a => a.Status == DeliveryStatus.Delivered),
+                Status = DetermineWebhookStatus(e)
+            }).ToList();
+
+            var response = new PaginatedResponse<WebhookSearchItemDto>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching webhooks for subscriber {SubscriberId}", subscriberId.Value);
+            return StatusCode(500, new { error = "An error occurred while searching webhooks" });
+        }
+    }
+
+    private static string DetermineWebhookStatus(Core.Entities.WebhookEvent webhookEvent)
+    {
+        if (!webhookEvent.DeliveryAttempts.Any())
+            return "Pending";
+
+        var allDelivered = webhookEvent.DeliveryAttempts.All(a => a.Status == DeliveryStatus.Delivered);
+        if (allDelivered)
+            return "Delivered";
+
+        var anyFailed = webhookEvent.DeliveryAttempts.Any(a => a.Status == DeliveryStatus.Failed);
+        if (anyFailed)
+            return "Failed";
+
+        return "InProgress";
+    }
 }

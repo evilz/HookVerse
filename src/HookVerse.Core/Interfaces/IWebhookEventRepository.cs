@@ -38,4 +38,24 @@ public interface IWebhookEventRepository : IRepository<WebhookEvent>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>The webhook event with delivery attempts if found, otherwise null.</returns>
     Task<WebhookEvent?> GetWithDeliveryAttemptsAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Searches webhook events with filtering and pagination.
+    /// </summary>
+    /// <param name="subscriberId">The subscriber ID.</param>
+    /// <param name="startDate">Optional start date filter.</param>
+    /// <param name="endDate">Optional end date filter.</param>
+    /// <param name="eventTypeId">Optional event type filter.</param>
+    /// <param name="skip">Number of items to skip.</param>
+    /// <param name="take">Number of items to take.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tuple of webhook events and total count.</returns>
+    Task<(IEnumerable<WebhookEvent> Events, int TotalCount)> SearchAsync(
+        Guid subscriberId,
+        DateTime? startDate = null,
+        DateTime? endDate = null,
+        Guid? eventTypeId = null,
+        int skip = 0,
+        int take = 20,
+        CancellationToken cancellationToken = default);
 }

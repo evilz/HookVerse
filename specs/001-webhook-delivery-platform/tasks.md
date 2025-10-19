@@ -320,16 +320,16 @@ All paths follow the .NET solution structure from plan.md:
 
 ### Dashboard Services for User Story 5
 
-- [ ] T152 [US5] Create `IWebhookApiClient` interface in `src/HookVerse.Dashboard/Services/IWebhookApiClient.cs`
-- [ ] T153 [US5] Implement `WebhookApiClient` in `src/HookVerse.Dashboard/Services/WebhookApiClient.cs` using HttpClient
-- [ ] T154 [US5] Add authentication configuration for dashboard API calls in `src/HookVerse.Dashboard/appsettings.json`
+- [X] T152 [US5] Create `IWebhookApiClient` interface in `src/HookVerse.Dashboard/Services/IWebhookApiClient.cs`
+- [X] T153 [US5] Implement `WebhookApiClient` in `src/HookVerse.Dashboard/Services/WebhookApiClient.cs` using HttpClient
+- [X] T154 [US5] Add authentication configuration for dashboard API calls in `src/HookVerse.Dashboard/appsettings.json`
 
 ### API Endpoints for User Story 5
 
-- [ ] T155 [US5] Add GET /api/v1/webhooks/search endpoint to `WebhooksController` with filtering (date range, event type, status)
-- [ ] T156 [US5] Add pagination support to search endpoint with page, pageSize parameters
-- [ ] T157 [US5] Add GET /api/v1/analytics/dashboard endpoint in `src/HookVerse.Api/Controllers/AnalyticsController.cs`
-- [ ] T158 [US5] Implement analytics aggregation service in `src/HookVerse.Core/Services/AnalyticsService.cs`
+- [X] T155 [US5] Add GET /api/v1/webhooks/search endpoint to `WebhooksController` with filtering (date range, event type, status)
+- [X] T156 [US5] Add pagination support to search endpoint with page, pageSize parameters
+- [X] T157 [US5] Add GET /api/v1/analytics/dashboard endpoint in `src/HookVerse.Api/Controllers/AnalyticsController.cs`
+- [X] T158 [US5] Implement analytics aggregation service in `src/HookVerse.Core/Services/AnalyticsService.cs`
 
 ### Integration for User Story 5
 
