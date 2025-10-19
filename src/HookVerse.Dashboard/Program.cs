@@ -1,10 +1,20 @@
 using HookVerse.Dashboard.Components;
+using HookVerse.Dashboard.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Register HttpClient for API calls
+var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7001";
+builder.Services.AddHttpClient<IWebhookApiClient, WebhookApiClient>(client =>
+{
+    client.BaseAddress = new Uri(apiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
+    // TODO: Add authentication headers when implementing API key auth
+});
 
 var app = builder.Build();
 
