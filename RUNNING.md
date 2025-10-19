@@ -554,23 +554,84 @@ HookVerse API/
 
 ### 1. Access Dashboard
 
-Open browser to: https://localhost:7002
+**Development Mode** (authentication disabled):
+```
+https://localhost:7002/
+```
 
-### 2. Dashboard Features (When Completed)
+**Production Mode** (with API key):
+```
+https://localhost:7002/?apikey=your-api-key
+```
 
-- **Webhooks List** - View all webhook events with filtering
-- **Webhook Details** - Inspect delivery attempts, request/response
-- **Analytics** - Success rates, latency charts, daily trends
-- **Real-time Updates** - Live delivery notifications via SignalR
+### 2. Dashboard Pages
 
-### 3. Current Status
+- **Home** (`/`) - Welcome page
+- **Dashboard** (`/dashboard`) - Analytics overview with metrics
+  - Total webhooks count
+  - Success rate percentage
+  - Average response time
+  - Top event types by volume
+  
+- **Webhook Logs** (`/webhooks`) - Searchable webhook history
+  - TraceId, Event Type, Created Date, Status, Attempts
+  - Real-time updates via SignalR
+  
+- **Webhook Details** (`/webhooks/{id}`) - Individual webhook inspection
+  - Full payload viewer
+  - Delivery attempt timeline
+  - Request/response details
 
-🚧 **Dashboard is partially implemented:**
+### 3. Authentication (T162)
+
+**Development**: Authentication is disabled by default
+```json
+// appsettings.Development.json
+{
+  "Dashboard": {
+    "RequireAuthentication": false
+  }
+}
+```
+
+**Production**: Enable authentication and set API key
+```json
+// appsettings.json
+{
+  "Dashboard": {
+    "RequireAuthentication": true,
+    "ApiKey": "your-secure-random-api-key"
+  }
+}
+```
+
+**Access Methods**:
+- Header: `X-Dashboard-ApiKey: your-api-key`
+- Query: `?apikey=your-api-key`
+
+See `src/HookVerse.Dashboard/AUTHENTICATION.md` for detailed authentication guide.
+
+### 4. Real-time Features (T160)
+
+The dashboard includes SignalR integration for live updates:
+
+- **WebhookDelivered** - Notification when webhook is successfully delivered
+- **DeliveryAttempt** - Notification on each delivery attempt
+- **Auto-refresh** - Webhook list updates automatically on changes
+
+SignalR hub endpoint: `/webhookhub`
+
+### 5. Dashboard Status
+
+✅ **Phase 7 Complete (18/18 tasks):**
 - ✅ API client services (T152-T154)
-- ⏳ Blazor components (T145-T148) - **Not yet implemented**
-- ⏳ Blazor pages (T149-T151) - **Not yet implemented**
-- ⏳ API endpoints (T155-T158) - **Not yet implemented**
-- ⏳ Real-time features (T159-T162) - **Not yet implemented**
+- ✅ Blazor components (T145-T148)
+- ✅ Blazor pages (T149-T151)
+- ✅ API endpoints (T155-T158)
+- ✅ SignalR hub (T159)
+- ✅ Real-time notifications (T160)
+- ✅ Responsive CSS (T161)
+- ✅ Authentication (T162)
 
 ---
 
