@@ -82,3 +82,6 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+// Expose Program for WebApplicationFactory in integration tests
+public partial class Program { }
