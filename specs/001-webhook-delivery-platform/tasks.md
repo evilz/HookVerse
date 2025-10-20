@@ -481,10 +481,10 @@ All paths follow the .NET solution structure from plan.md:
 
 ### Performance Optimization
 
-- [ ] T225 [P] Add response caching for read-heavy endpoints (event types, schemas)
-- [ ] T226 [P] Optimize database queries with compiled queries where applicable
-- [ ] T227 [P] Add Redis caching layer for subscription lookups in high-throughput scenarios
-- [ ] T228 [P] Implement database connection pooling optimization
+- [X] T225 [P] Add response caching for read-heavy endpoints (event types, schemas)
+- [X] T226 [P] Optimize database queries with compiled queries where applicable
+- [X] T227 [P] Add Redis caching layer for subscription lookups in high-throughput scenarios
+- [X] T228 [P] Implement database connection pooling optimization
 
 ### Operational Readiness
 
