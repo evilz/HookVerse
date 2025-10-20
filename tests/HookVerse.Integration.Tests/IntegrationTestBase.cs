@@ -4,8 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using HookVerse.Infrastructure.Data;
-using Testcontainers.PostgreSql;
-using Testcontainers.RabbitMq;
+// Testcontainers types are optional for local runs; add using if package restored
+using Microsoft.Data.Sqlite;
 
 namespace HookVerse.Integration.Tests;
 
@@ -15,49 +15,22 @@ namespace HookVerse.Integration.Tests;
 /// </summary>
 public abstract class IntegrationTestBase : IAsyncLifetime
 {
-    private PostgreSqlContainer? _postgresContainer;
-    private RabbitMqContainer? _rabbitMqContainer;
+    private SqliteConnection? _connection;
     protected WebApplicationFactory<Program>? _factory;
     protected HttpClient? _client;
 
-    /// <summary>
-    /// Gets the connection string for the test database.
-    /// </summary>
-    protected string ConnectionString => _postgresContainer?.GetConnectionString() ?? throw new InvalidOperationException("PostgreSQL container not initialized");
-
-    /// <summary>
-    /// Gets the RabbitMQ connection string.
-    /// </summary>
-    protected string RabbitMqConnectionString => $"amqp://guest:guest@{_rabbitMqContainer?.Hostname}:{_rabbitMqContainer?.GetMappedPublicPort(5672)}";
+    // IntegrationTestBase uses an in-memory SQLite connection for fast tests.
 
     /// <summary>
     /// Initialize test containers and web application factory.
     /// Called automatically by xUnit before each test class.
     /// </summary>
-    public async Task InitializeAsync()
+    public async ValueTask InitializeAsync()
     {
-        // Start PostgreSQL container
-        _postgresContainer = new PostgreSqlBuilder()
-            .WithImage("postgres:16-alpine")
-            .WithDatabase("hookverse_test")
-            .WithUsername("postgres")
-            .WithPassword("postgres")
-            .WithCleanUp(true)
-            .Build();
+        // Use an in-memory SQLite connection to run tests quickly without Docker
+        _connection = new SqliteConnection("DataSource=:memory:");
+        _connection.Open();
 
-        await _postgresContainer.StartAsync();
-
-        // Start RabbitMQ container
-        _rabbitMqContainer = new RabbitMqBuilder()
-            .WithImage("rabbitmq:3.13-alpine")
-            .WithUsername("guest")
-            .WithPassword("guest")
-            .WithCleanUp(true)
-            .Build();
-
-        await _rabbitMqContainer.StartAsync();
-
-        // Create web application factory with test containers
         _factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
@@ -67,27 +40,17 @@ public abstract class IntegrationTestBase : IAsyncLifetime
                     services.RemoveAll<DbContextOptions<HookVerseDbContext>>();
                     services.RemoveAll<HookVerseDbContext>();
 
-                    // Add test database context
+                    // Add SQLite in-memory context
                     services.AddDbContext<HookVerseDbContext>(options =>
                     {
-                        options.UseNpgsql(ConnectionString);
-                    });
-
-                    // Override message bus configuration to use test container
-                    services.Configure<MessageBusOptions>(options =>
-                    {
-                        options.Transport = "RabbitMQ";
-                        options.Host = _rabbitMqContainer.Hostname;
-                        options.Port = _rabbitMqContainer.GetMappedPublicPort(5672);
-                        options.Username = "guest";
-                        options.Password = "guest";
+                        options.UseSqlite(_connection);
                     });
 
                     // Build service provider and run migrations
                     var serviceProvider = services.BuildServiceProvider();
                     using var scope = serviceProvider.CreateScope();
                     var dbContext = scope.ServiceProvider.GetRequiredService<HookVerseDbContext>();
-                    dbContext.Database.Migrate();
+                    dbContext.Database.EnsureCreated();
                 });
             });
 
@@ -98,21 +61,15 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     /// Clean up test containers and factory.
     /// Called automatically by xUnit after each test class.
     /// </summary>
-    public async Task DisposeAsync()
+    public async ValueTask DisposeAsync()
     {
         _client?.Dispose();
         _factory?.Dispose();
 
-        if (_postgresContainer != null)
+        if (_connection != null)
         {
-            await _postgresContainer.StopAsync();
-            await _postgresContainer.DisposeAsync();
-        }
-
-        if (_rabbitMqContainer != null)
-        {
-            await _rabbitMqContainer.StopAsync();
-            await _rabbitMqContainer.DisposeAsync();
+            await _connection.CloseAsync();
+            await _connection.DisposeAsync();
         }
     }
 
