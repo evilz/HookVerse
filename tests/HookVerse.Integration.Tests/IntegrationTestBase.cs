@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -34,20 +35,13 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         _factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
+                // Override configuration BEFORE services are registered
+                builder.UseSetting("Database:Provider", "SQLite");
+                builder.UseSetting("ConnectionStrings:DefaultConnection", _connection.ConnectionString);
+
                 builder.ConfigureTestServices(services =>
                 {
-                    // Remove all DbContext and EF Core provider registrations
-                    services.RemoveAll(typeof(DbContextOptions<HookVerseDbContext>));
-                    services.RemoveAll(typeof(DbContextOptions));
-                    services.RemoveAll(typeof(HookVerseDbContext));
-
-                    // Add SQLite in-memory context with new service provider
-                    services.AddDbContext<HookVerseDbContext>((serviceProvider, options) =>
-                    {
-                        options.UseSqlite(_connection);
-                    }, ServiceLifetime.Scoped, ServiceLifetime.Scoped);
-                    
-                    // Initialize database in a separate scope to avoid provider conflicts
+                    // Initialize database after all services are configured
                     var sp = services.BuildServiceProvider();
                     using var scope = sp.CreateScope();
                     var dbContext = scope.ServiceProvider.GetRequiredService<HookVerseDbContext>();

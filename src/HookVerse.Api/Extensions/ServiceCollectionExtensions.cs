@@ -22,18 +22,36 @@ public static class ServiceCollectionExtensions
     /// </summary>
     public static IServiceCollection AddDatabase(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("DefaultConnection not configured");
+        var provider = configuration["Database:Provider"] ?? "PostgreSQL";
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
 
         services.AddDbContext<HookVerseDbContext>(options =>
         {
-            options.UseNpgsql(connectionString, npgsqlOptions =>
+            switch (provider.ToUpperInvariant())
             {
-                npgsqlOptions.EnableRetryOnFailure(
-                    maxRetryCount: 3,
-                    maxRetryDelay: TimeSpan.FromSeconds(30),
-                    errorCodesToAdd: null);
-            });
+                case "SQLITE":
+                    if (string.IsNullOrEmpty(connectionString))
+                    {
+                        connectionString = "DataSource=:memory:";
+                    }
+                    options.UseSqlite(connectionString);
+                    break;
+
+                case "POSTGRESQL":
+                default:
+                    if (string.IsNullOrEmpty(connectionString))
+                    {
+                        throw new InvalidOperationException("DefaultConnection not configured for PostgreSQL");
+                    }
+                    options.UseNpgsql(connectionString, npgsqlOptions =>
+                    {
+                        npgsqlOptions.EnableRetryOnFailure(
+                            maxRetryCount: 3,
+                            maxRetryDelay: TimeSpan.FromSeconds(30),
+                            errorCodesToAdd: null);
+                    });
+                    break;
+            }
         });
 
         // Register generic repository
@@ -74,12 +92,6 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMockEndpointService, MockEndpointService>();
         services.AddScoped<IGdprService, GdprService>();
         
-        // Register metrics
-        services.AddSingleton<SubscriptionMetrics>();
-        services.AddSingleton<MockEndpointMetrics>();
-        services.AddSingleton<SchemaValidationMetrics>();
-        services.AddSingleton<GdprMetrics>();
-        
         // Register HttpClient for DeliveryService
         services.AddHttpClient<IDeliveryService, DeliveryService>();
 
@@ -90,7 +102,9 @@ public static class ServiceCollectionExtensions
         // Register FluentValidation
         services.AddValidatorsFromAssemblyContaining<Program>();
 
-        // Register metrics
+        // Register metrics with proper factories
+        services.AddSingleton<GdprMetrics>();
+        
         services.AddSingleton<SubscriptionMetrics>(sp =>
         {
             var meterFactory = sp.GetRequiredService<IMeterFactory>();
