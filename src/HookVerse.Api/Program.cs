@@ -2,13 +2,34 @@ using HookVerse.Api.Extensions;
 using HookVerse.Api.Middleware;
 using Serilog;
 
+// Main entry point
 var builder = WebApplication.CreateBuilder(args);
-
-// Configure Serilog logging
-builder.AddSerilogLogging();
+ConfigureServices(builder);
+var app = builder.Build();
+ConfigurePipeline(app);
 
 try
 {
+    Log.Information("HookVerse API started successfully");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
+
+return;
+
+// Configure services (used by both main and tests)
+static void ConfigureServices(WebApplicationBuilder builder)
+{
+    // Configure Serilog logging
+    builder.AddSerilogLogging();
+
     Log.Information("Starting HookVerse API");
 
     // Add services to the container
@@ -42,9 +63,11 @@ try
     // Add exception handling
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
     builder.Services.AddProblemDetails();
+}
 
-    var app = builder.Build();
-
+// Configure HTTP pipeline (used by both main and tests)
+static void ConfigurePipeline(WebApplication app)
+{
     // Configure the HTTP request pipeline
     app.UseExceptionHandler();
 
@@ -70,17 +93,6 @@ try
 
     app.MapControllers();
     app.MapHealthChecks("/health");
-
-    Log.Information("HookVerse API started successfully");
-    app.Run();
-}
-catch (Exception ex)
-{
-    Log.Fatal(ex, "Application terminated unexpectedly");
-}
-finally
-{
-    Log.CloseAndFlush();
 }
 
 // Expose Program for WebApplicationFactory in integration tests
