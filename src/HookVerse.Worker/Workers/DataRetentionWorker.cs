@@ -1,5 +1,7 @@
 using HookVerse.Core.Interfaces;
+using HookVerse.Infrastructure.Metrics;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 
 namespace HookVerse.Worker.Workers;
 
@@ -9,16 +11,19 @@ namespace HookVerse.Worker.Workers;
 public class DataRetentionWorker : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
+    private readonly GdprMetrics _gdprMetrics;
     private readonly ILogger<DataRetentionWorker> _logger;
     private readonly IConfiguration _configuration;
     private TimeSpan _scheduleInterval;
 
     public DataRetentionWorker(
         IServiceProvider serviceProvider,
+        GdprMetrics gdprMetrics,
         ILogger<DataRetentionWorker> logger,
         IConfiguration configuration)
     {
         _serviceProvider = serviceProvider;
+        _gdprMetrics = gdprMetrics;
         _logger = logger;
         _configuration = configuration;
 
@@ -68,6 +73,8 @@ public class DataRetentionWorker : BackgroundService
     {
         _logger.LogInformation("Starting data retention operation at {Timestamp}", DateTime.UtcNow);
 
+        var stopwatch = Stopwatch.StartNew();
+
         using var scope = _serviceProvider.CreateScope();
         var webhookEventRepository = scope.ServiceProvider.GetRequiredService<IWebhookEventRepository>();
 
@@ -115,9 +122,14 @@ public class DataRetentionWorker : BackgroundService
                 }
             }
 
+            stopwatch.Stop();
+
             _logger.LogInformation(
-                "Data retention operation completed. Purged {PurgedCount} webhook events",
-                purgedCount);
+                "Data retention operation completed. Purged {PurgedCount} webhook events in {Duration}s",
+                purgedCount,
+                stopwatch.Elapsed.TotalSeconds);
+
+            _gdprMetrics.RecordRetentionPurge(purgedCount, stopwatch.Elapsed.TotalSeconds);
         }
         catch (Exception ex)
         {

@@ -2,6 +2,7 @@ using HookVerse.Core.Interfaces;
 using HookVerse.Core.Services;
 using HookVerse.Infrastructure.Data;
 using HookVerse.Infrastructure.MessageBus;
+using HookVerse.Infrastructure.Metrics;
 using HookVerse.Infrastructure.Repositories;
 using HookVerse.Infrastructure.SchemaValidation;
 using HookVerse.Infrastructure.Services;
@@ -61,6 +62,9 @@ try
     // Register schema validators
     builder.Services.AddScoped<ISchemaValidator, JsonSchemaValidator>();
     builder.Services.AddScoped<SchemaValidatorFactory>();
+
+    // Register metrics
+    builder.Services.AddSingleton<GdprMetrics>();
 
     // Add Message Bus
     builder.Services.AddMessageBus(builder.Configuration);

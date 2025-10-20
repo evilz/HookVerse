@@ -435,7 +435,7 @@ All paths follow the .NET solution structure from plan.md:
 ### Integration for User Story 7
 
 - [X] T204 [US7] Add GDPR request management UI in dashboard at `src/HookVerse.Dashboard/Pages/GdprRequests.razor`
-- [ ] T205 [US7] Add OpenTelemetry metrics for GDPR request processing times and retention operations
+- [X] T205 [US7] Add OpenTelemetry metrics for GDPR request processing times and retention operations
 
 **Checkpoint**: All user stories complete - full GDPR compliance with export, deletion, and retention
 

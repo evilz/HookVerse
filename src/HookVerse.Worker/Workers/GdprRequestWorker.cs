@@ -1,5 +1,7 @@
 using HookVerse.Core.Interfaces;
 using HookVerse.Core.ValueObjects;
+using HookVerse.Infrastructure.Metrics;
+using System.Diagnostics;
 
 namespace HookVerse.Worker.Workers;
 
@@ -9,14 +11,17 @@ namespace HookVerse.Worker.Workers;
 public class GdprRequestWorker : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
+    private readonly GdprMetrics _gdprMetrics;
     private readonly ILogger<GdprRequestWorker> _logger;
     private readonly TimeSpan _pollingInterval = TimeSpan.FromMinutes(1);
 
     public GdprRequestWorker(
         IServiceProvider serviceProvider,
+        GdprMetrics gdprMetrics,
         ILogger<GdprRequestWorker> logger)
     {
         _serviceProvider = serviceProvider;
+        _gdprMetrics = gdprMetrics;
         _logger = logger;
     }
 
@@ -49,8 +54,14 @@ public class GdprRequestWorker : BackgroundService
 
         var pendingRequests = await gdprRequestRepository.GetPendingRequestsAsync(cancellationToken);
 
+        _gdprMetrics.UpdatePendingRequestsGauge(pendingRequests.Count());
+
         foreach (var request in pendingRequests)
         {
+            var stopwatch = Stopwatch.StartNew();
+            var status = "Completed";
+            long? fileSizeBytes = null;
+
             try
             {
                 _logger.LogInformation(
@@ -60,6 +71,10 @@ public class GdprRequestWorker : BackgroundService
                 if (request.RequestType == GdprRequestType.Export)
                 {
                     await gdprService.ProcessExportRequestAsync(request.Id, cancellationToken);
+                    
+                    // Get updated request to retrieve file size
+                    var updatedRequest = await gdprRequestRepository.GetByIdAsync(request.Id, cancellationToken);
+                    fileSizeBytes = updatedRequest?.ExportFileSizeBytes;
                 }
                 else if (request.RequestType == GdprRequestType.Delete)
                 {
@@ -72,9 +87,19 @@ public class GdprRequestWorker : BackgroundService
             }
             catch (Exception ex)
             {
+                status = "Failed";
                 _logger.LogError(ex, 
                     "Error processing GDPR request {RequestId}",
                     request.Id);
+            }
+            finally
+            {
+                stopwatch.Stop();
+                _gdprMetrics.RecordRequestCompleted(
+                    request.RequestType.ToString(),
+                    status,
+                    stopwatch.Elapsed.TotalSeconds,
+                    fileSizeBytes);
             }
         }
     }

@@ -1,6 +1,7 @@
 using HookVerse.Api.Models;
 using HookVerse.Core.Interfaces;
 using HookVerse.Core.ValueObjects;
+using HookVerse.Infrastructure.Metrics;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
@@ -15,13 +16,16 @@ namespace HookVerse.Api.Controllers;
 public class GdprController : ControllerBase
 {
     private readonly IGdprService _gdprService;
+    private readonly GdprMetrics _gdprMetrics;
     private readonly ILogger<GdprController> _logger;
 
     public GdprController(
         IGdprService gdprService,
+        GdprMetrics gdprMetrics,
         ILogger<GdprController> logger)
     {
         _gdprService = gdprService;
+        _gdprMetrics = gdprMetrics;
         _logger = logger;
     }
 
@@ -45,6 +49,8 @@ public class GdprController : ControllerBase
         {
             var metadata = request.Metadata != null ? JsonSerializer.Serialize(request.Metadata) : null;
             var gdprRequest = await _gdprService.CreateExportRequestAsync(subscriberId.Value, metadata, cancellationToken);
+
+            _gdprMetrics.RecordRequestCreated("Export");
 
             var response = MapToResponse(gdprRequest);
             return Accepted(response);
@@ -82,6 +88,8 @@ public class GdprController : ControllerBase
         {
             var metadata = request.Metadata != null ? JsonSerializer.Serialize(request.Metadata) : null;
             var gdprRequest = await _gdprService.CreateDeleteRequestAsync(subscriberId.Value, metadata, cancellationToken);
+
+            _gdprMetrics.RecordRequestCreated("Delete");
 
             var response = MapToResponse(gdprRequest);
             return Accepted(response);

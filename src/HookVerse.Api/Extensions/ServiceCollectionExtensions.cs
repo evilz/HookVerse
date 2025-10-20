@@ -74,6 +74,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMockEndpointService, MockEndpointService>();
         services.AddScoped<IGdprService, GdprService>();
         
+        // Register metrics
+        services.AddSingleton<SubscriptionMetrics>();
+        services.AddSingleton<MockEndpointMetrics>();
+        services.AddSingleton<SchemaValidationMetrics>();
+        services.AddSingleton<GdprMetrics>();
+        
         // Register HttpClient for DeliveryService
         services.AddHttpClient<IDeliveryService, DeliveryService>();
 
