@@ -160,3 +160,9 @@ lcov.info
 
 # Benchmark results
 BenchmarkDotNet.Artifacts/
+
+# Kubernetes secrets (never commit actual secrets)
+**/k8s/secret.yaml
+**/k8s/secret.local.yaml
+**/k8s/*-secret.yaml
+!**/k8s/secret.yaml.template
