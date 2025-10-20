@@ -36,26 +36,20 @@ public abstract class IntegrationTestBase : IAsyncLifetime
             {
                 builder.ConfigureTestServices(services =>
                 {
-                    // Remove all DbContext-related registrations
-                    var descriptors = services.Where(d => 
-                        d.ServiceType == typeof(DbContextOptions<HookVerseDbContext>) ||
-                        d.ServiceType == typeof(DbContextOptions) ||
-                        d.ServiceType == typeof(HookVerseDbContext)).ToList();
-                    
-                    foreach (var descriptor in descriptors)
-                    {
-                        services.Remove(descriptor);
-                    }
+                    // Remove all DbContext and EF Core provider registrations
+                    services.RemoveAll(typeof(DbContextOptions<HookVerseDbContext>));
+                    services.RemoveAll(typeof(DbContextOptions));
+                    services.RemoveAll(typeof(HookVerseDbContext));
 
-                    // Add SQLite in-memory context
-                    services.AddDbContext<HookVerseDbContext>(options =>
+                    // Add SQLite in-memory context with new service provider
+                    services.AddDbContext<HookVerseDbContext>((serviceProvider, options) =>
                     {
                         options.UseSqlite(_connection);
-                    });
+                    }, ServiceLifetime.Scoped, ServiceLifetime.Scoped);
                     
-                    // Initialize database after all services are configured
-                    var serviceProvider = services.BuildServiceProvider();
-                    using var scope = serviceProvider.CreateScope();
+                    // Initialize database in a separate scope to avoid provider conflicts
+                    var sp = services.BuildServiceProvider();
+                    using var scope = sp.CreateScope();
                     var dbContext = scope.ServiceProvider.GetRequiredService<HookVerseDbContext>();
                     dbContext.Database.EnsureCreated();
                 });
