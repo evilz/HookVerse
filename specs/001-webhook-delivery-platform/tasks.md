@@ -460,11 +460,11 @@ All paths follow the .NET solution structure from plan.md:
 
 ### Kubernetes Deployment
 
-- [ ] T213 [P] Create Kubernetes deployment manifests in `docs/deployment/k8s/` for API, Worker, Dashboard services
-- [ ] T214 [P] Create Kubernetes service manifests for load balancing
-- [ ] T215 [P] Create Kubernetes ConfigMap for application configuration
-- [ ] T216 [P] Create Kubernetes Secret for sensitive configuration (API keys, connection strings)
-- [ ] T217 [P] Create Helm chart in `docs/deployment/helm/hookverse/` for simplified deployment
+- [X] T213 [P] Create Kubernetes deployment manifests in `docs/deployment/k8s/` for API, Worker, Dashboard services
+- [X] T214 [P] Create Kubernetes service manifests for load balancing
+- [X] T215 [P] Create Kubernetes ConfigMap for application configuration
+- [X] T216 [P] Create Kubernetes Secret for sensitive configuration (API keys, connection strings)
+- [X] T217 [P] Create Helm chart in `docs/deployment/helm/hookverse/` for simplified deployment
 
 ### Observability Enhancements
 
