@@ -393,19 +393,19 @@ All paths follow the .NET solution structure from plan.md:
 
 ### Domain Models for User Story 7
 
-- [ ] T181 [P] [US7] Create `GdprRequest` entity in `src/HookVerse.Core/Entities/GdprRequest.cs` with Id, SubscriberId, RequestType, Status, CompletedAt
-- [ ] T182 [P] [US7] Create `GdprRequestType` enum in `src/HookVerse.Core/ValueObjects/GdprRequestType.cs` with Export, Delete
-- [ ] T183 [P] [US7] Create `GdprRequestStatus` enum in `src/HookVerse.Core/ValueObjects/GdprRequestStatus.cs` with Pending, Processing, Completed, Failed
+- [X] T181 [P] [US7] Create `GdprRequest` entity in `src/HookVerse.Core/Entities/GdprRequest.cs` with Id, SubscriberId, RequestType, Status, CompletedAt
+- [X] T182 [P] [US7] Create `GdprRequestType` enum in `src/HookVerse.Core/ValueObjects/GdprRequestType.cs` with Export, Delete
+- [X] T183 [P] [US7] Create `GdprRequestStatus` enum in `src/HookVerse.Core/ValueObjects/GdprRequestStatus.cs` with Pending, Processing, Completed, Failed
 
 ### EF Core Configuration for User Story 7
 
-- [ ] T184 [US7] Create `GdprRequestConfiguration` in `src/HookVerse.Infrastructure/Data/Configurations/GdprRequestConfiguration.cs`
-- [ ] T185 [US7] Add GdprRequest to DbContext and create migration
+- [X] T184 [US7] Create `GdprRequestConfiguration` in `src/HookVerse.Infrastructure/Data/Configurations/GdprRequestConfiguration.cs`
+- [X] T185 [US7] Add GdprRequest to DbContext and create migration
 
 ### Repositories for User Story 7
 
-- [ ] T186 [US7] Create `IGdprRequestRepository` interface in `src/HookVerse.Core/Interfaces/IGdprRequestRepository.cs`
-- [ ] T187 [US7] Implement `GdprRequestRepository` in `src/HookVerse.Infrastructure/Repositories/GdprRequestRepository.cs`
+- [X] T186 [US7] Create `IGdprRequestRepository` interface in `src/HookVerse.Core/Interfaces/IGdprRequestRepository.cs`
+- [X] T187 [US7] Implement `GdprRequestRepository` in `src/HookVerse.Infrastructure/Repositories/GdprRequestRepository.cs`
 
 ### API Controllers for User Story 7
 
