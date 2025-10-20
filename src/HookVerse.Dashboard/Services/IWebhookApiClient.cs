@@ -82,4 +82,29 @@ public interface IWebhookApiClient
         Guid id,
         TriggerMockWebhookRequest request,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get all GDPR requests for the subscriber
+    /// </summary>
+    Task<List<GdprRequestResponse>> GetGdprRequestsAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Create a GDPR data export request
+    /// </summary>
+    Task<GdprRequestResponse> CreateGdprExportRequestAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Create a GDPR data deletion request
+    /// </summary>
+    Task<GdprRequestResponse> CreateGdprDeleteRequestAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Download a GDPR export file
+    /// </summary>
+    Task<(byte[] Data, string FileName)?> DownloadGdprExportAsync(
+        Guid id,
+        CancellationToken cancellationToken = default);
 }

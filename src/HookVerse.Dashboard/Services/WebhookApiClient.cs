@@ -248,6 +248,92 @@ public class WebhookApiClient : IWebhookApiClient
         }
     }
 
+    public async Task<List<GdprRequestResponse>> GetGdprRequestsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync("/api/v1/gdpr/requests", cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<List<GdprRequestResponse>>(_jsonOptions, cancellationToken)
+                ?? new List<GdprRequestResponse>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting GDPR requests");
+            return new List<GdprRequestResponse>();
+        }
+    }
+
+    public async Task<GdprRequestResponse> CreateGdprExportRequestAsync(
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("/api/v1/gdpr/export", new { }, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<GdprRequestResponse>(_jsonOptions, cancellationToken)
+                ?? throw new InvalidOperationException("Failed to create GDPR export request");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating GDPR export request");
+            throw;
+        }
+    }
+
+    public async Task<GdprRequestResponse> CreateGdprDeleteRequestAsync(
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var request = new { Confirmed = true };
+            var response = await _httpClient.PostAsJsonAsync("/api/v1/gdpr/delete", request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<GdprRequestResponse>(_jsonOptions, cancellationToken)
+                ?? throw new InvalidOperationException("Failed to create GDPR delete request");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating GDPR delete request");
+            throw;
+        }
+    }
+
+    public async Task<(byte[] Data, string FileName)?> DownloadGdprExportAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"/api/v1/gdpr/export/{id}/download", cancellationToken);
+            
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return null;
+
+            response.EnsureSuccessStatusCode();
+
+            var data = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            var fileName = "gdpr-export.json";
+
+            // Try to get filename from Content-Disposition header
+            if (response.Content.Headers.ContentDisposition?.FileName != null)
+            {
+                fileName = response.Content.Headers.ContentDisposition.FileName.Trim('"');
+            }
+
+            return (data, fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error downloading GDPR export {Id}", id);
+            return null;
+        }
+    }
+
     private class PaginatedResult<T>
     {
         public List<T> Items { get; set; } = new();
