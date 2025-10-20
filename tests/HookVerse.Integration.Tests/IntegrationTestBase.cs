@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using HookVerse.Infrastructure.Data;
-// Testcontainers types are optional for local runs; add using if package restored
 using Microsoft.Data.Sqlite;
 
 namespace HookVerse.Integration.Tests;
@@ -36,17 +36,24 @@ public abstract class IntegrationTestBase : IAsyncLifetime
             {
                 builder.ConfigureServices(services =>
                 {
-                    // Remove existing DbContext registration
-                    services.RemoveAll<DbContextOptions<HookVerseDbContext>>();
-                    services.RemoveAll<HookVerseDbContext>();
+                    // Remove existing DbContext and provider registrations
+                    var descriptor = services.SingleOrDefault(
+                        d => d.ServiceType == typeof(DbContextOptions<HookVerseDbContext>));
+                    if (descriptor != null)
+                    {
+                        services.Remove(descriptor);
+                    }
 
                     // Add SQLite in-memory context
                     services.AddDbContext<HookVerseDbContext>(options =>
                     {
                         options.UseSqlite(_connection);
                     });
-
-                    // Build service provider and run migrations
+                });
+                
+                builder.ConfigureTestServices(services =>
+                {
+                    // Initialize database after all services are configured
                     var serviceProvider = services.BuildServiceProvider();
                     using var scope = serviceProvider.CreateScope();
                     var dbContext = scope.ServiceProvider.GetRequiredService<HookVerseDbContext>();
