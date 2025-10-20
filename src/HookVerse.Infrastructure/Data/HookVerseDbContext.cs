@@ -22,6 +22,9 @@ public class HookVerseDbContext : DbContext
     public DbSet<MockEndpoint> MockEndpoints => Set<MockEndpoint>();
     public DbSet<MockEndpointRequest> MockEndpointRequests => Set<MockEndpointRequest>();
 
+    // DbSets for User Story 7 - GDPR Compliance
+    public DbSet<GdprRequest> GdprRequests => Set<GdprRequest>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

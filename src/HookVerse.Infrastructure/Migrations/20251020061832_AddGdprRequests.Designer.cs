@@ -3,6 +3,7 @@ using System;
 using HookVerse.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace HookVerse.Infrastructure.Migrations
 {
     [DbContext(typeof(HookVerseDbContext))]
-    partial class HookVerseDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251020061832_AddGdprRequests")]
+    partial class AddGdprRequests
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
