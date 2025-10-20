@@ -1,0 +1,341 @@
+groups:
+  # Webhook Delivery Alerts
+  - name: hookverse_webhook_delivery
+    interval: 30s
+    rules:
+      - alert: WebhookDeliverySuccessRateLow
+        expr: |
+          (
+            sum(rate(hookverse_webhooks_delivered_total[5m]))
+            /
+            sum(rate(hookverse_webhooks_sent_total[5m]))
+          ) * 100 < 95
+        for: 5m
+        labels:
+          severity: warning
+          component: webhook-delivery
+        annotations:
+          summary: "Webhook delivery success rate below 95%"
+          description: "Webhook delivery success rate is {{ $value | humanizePercentage }} (threshold: 95%). Check worker logs and downstream service health."
+          dashboard: "https://grafana.example.com/d/hookverse-webhooks"
+          runbook: "https://docs.hookverse.dev/runbooks/low-delivery-rate"
+
+      - alert: WebhookDeliverySuccessRateCritical
+        expr: |
+          (
+            sum(rate(hookverse_webhooks_delivered_total[5m]))
+            /
+            sum(rate(hookverse_webhooks_sent_total[5m]))
+          ) * 100 < 90
+        for: 2m
+        labels:
+          severity: critical
+          component: webhook-delivery
+        annotations:
+          summary: "Webhook delivery success rate critically low"
+          description: "Webhook delivery success rate is {{ $value | humanizePercentage }} (threshold: 90%). Immediate investigation required!"
+          dashboard: "https://grafana.example.com/d/hookverse-webhooks"
+          runbook: "https://docs.hookverse.dev/runbooks/low-delivery-rate"
+
+      - alert: WebhookQueueHigh
+        expr: sum(hookverse_webhook_queue_length) > 10000
+        for: 10m
+        labels:
+          severity: warning
+          component: webhook-delivery
+        annotations:
+          summary: "Webhook queue length high"
+          description: "Webhook queue has {{ $value }} items (threshold: 10,000). Consider scaling workers or investigating slow deliveries."
+          dashboard: "https://grafana.example.com/d/hookverse-webhooks"
+          runbook: "https://docs.hookverse.dev/runbooks/high-queue-length"
+
+      - alert: WebhookQueueCritical
+        expr: sum(hookverse_webhook_queue_length) > 50000
+        for: 5m
+        labels:
+          severity: critical
+          component: webhook-delivery
+        annotations:
+          summary: "Webhook queue length critical"
+          description: "Webhook queue has {{ $value }} items (threshold: 50,000). Immediate action required to prevent data loss!"
+          dashboard: "https://grafana.example.com/d/hookverse-webhooks"
+          runbook: "https://docs.hookverse.dev/runbooks/high-queue-length"
+
+      - alert: WebhookDeliveryLatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(hookverse_webhook_delivery_duration_seconds_bucket[5m])) by (le)
+          ) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          component: webhook-delivery
+        annotations:
+          summary: "Webhook delivery p95 latency high"
+          description: "Webhook delivery p95 latency is {{ $value | humanizeDuration }} (threshold: 500ms). Check downstream service performance."
+          dashboard: "https://grafana.example.com/d/hookverse-webhooks"
+          runbook: "https://docs.hookverse.dev/runbooks/high-latency"
+
+      - alert: WebhookFailureRateHigh
+        expr: |
+          sum(rate(hookverse_webhooks_failed_total[5m]))
+          /
+          sum(rate(hookverse_webhooks_sent_total[5m])) * 100 > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: webhook-delivery
+        annotations:
+          summary: "Webhook failure rate high"
+          description: "Webhook failure rate is {{ $value | humanizePercentage }} (threshold: 5%). Check error logs and downstream services."
+          dashboard: "https://grafana.example.com/d/hookverse-webhooks"
+          runbook: "https://docs.hookverse.dev/runbooks/high-failure-rate"
+
+      - alert: WebhookRetriesExceeded
+        expr: sum(rate(hookverse_delivery_attempts{attempt_number="5"}[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: webhook-delivery
+        annotations:
+          summary: "High number of webhooks reaching max retry attempts"
+          description: "{{ $value }} webhooks/sec are reaching max retry attempts (5). Check subscriber endpoints and error patterns."
+          dashboard: "https://grafana.example.com/d/hookverse-webhooks"
+          runbook: "https://docs.hookverse.dev/runbooks/max-retries"
+
+  # API Service Alerts
+  - name: hookverse_api_service
+    interval: 30s
+    rules:
+      - alert: APIServiceDown
+        expr: up{job="hookverse-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "API service is down"
+          description: "API service {{ $labels.instance }} is down for more than 1 minute."
+          dashboard: "https://grafana.example.com/d/hookverse-system-health"
+          runbook: "https://docs.hookverse.dev/runbooks/service-down"
+
+      - alert: APIHighErrorRate
+        expr: |
+          sum(rate(http_requests_total{job="hookverse-api",status=~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total{job="hookverse-api"}[5m])) * 100 > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "API 5xx error rate high"
+          description: "API 5xx error rate is {{ $value | humanizePercentage }} (threshold: 5%). Check application logs."
+          dashboard: "https://grafana.example.com/d/hookverse-system-health"
+          runbook: "https://docs.hookverse.dev/runbooks/high-error-rate"
+
+      - alert: APILatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="hookverse-api"}[5m])) by (le)
+          ) > 0.2
+        for: 10m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "API p95 latency high"
+          description: "API p95 latency is {{ $value | humanizeDuration }} (threshold: 200ms). Investigate slow endpoints."
+          dashboard: "https://grafana.example.com/d/hookverse-system-health"
+          runbook: "https://docs.hookverse.dev/runbooks/api-latency"
+
+      - alert: APILatencyCritical
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="hookverse-api"}[5m])) by (le)
+          ) > 1.0
+        for: 5m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "API p95 latency critical"
+          description: "API p95 latency is {{ $value | humanizeDuration }} (threshold: 1s). Immediate investigation required!"
+          dashboard: "https://grafana.example.com/d/hookverse-system-health"
+          runbook: "https://docs.hookverse.dev/runbooks/api-latency"
+
+      - alert: APITooFewInstances
+        expr: count(up{job="hookverse-api"} == 1) < 2
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "Too few API instances running"
+          description: "Only {{ $value }} API instances are running (minimum: 2). High availability at risk."
+          dashboard: "https://grafana.example.com/d/hookverse-system-health"
+          runbook: "https://docs.hookverse.dev/runbooks/insufficient-instances"
+
+  # Worker Service Alerts
+  - name: hookverse_worker_service
+    interval: 30s
+    rules:
+      - alert: WorkerServiceDown
+        expr: up{job="hookverse-worker"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: worker
+        annotations:
+          summary: "Worker service is down"
+          description: "Worker service {{ $labels.instance }} is down for more than 1 minute. Webhook delivery stopped!"
+          dashboard: "https://grafana.example.com/d/hookverse-system-health"
+          runbook: "https://docs.hookverse.dev/runbooks/service-down"
+
+      - alert: WorkerTooFewInstances
+        expr: count(up{job="hookverse-worker"} == 1) < 3
+        for: 5m
+        labels:
+          severity: warning
+          component: worker
+        annotations:
+          summary: "Too few Worker instances running"
+          description: "Only {{ $value }} Worker instances are running (minimum: 3). Webhook throughput may be impacted."
+          dashboard: "https://grafana.example.com/d/hookverse-system-health"
+          runbook: "https://docs.hookverse.dev/runbooks/insufficient-instances"
+
+  # Resource Usage Alerts
+  - name: hookverse_resources
+    interval: 30s
+    rules:
+      - alert: HighCPUUsage
+        expr: |
+          rate(process_cpu_seconds_total{job=~"hookverse-.*"}[5m]) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          component: "{{ $labels.job }}"
+        annotations:
+          summary: "High CPU usage on {{ $labels.job }}"
+          description: "CPU usage is {{ $value | humanizePercentage }} on {{ $labels.pod }} (threshold: 85%)."
+          dashboard: "https://grafana.example.com/d/hookverse-system-health"
+          runbook: "https://docs.hookverse.dev/runbooks/high-cpu"
+
+      - alert: CriticalCPUUsage
+        expr: |
+          rate(process_cpu_seconds_total{job=~"hookverse-.*"}[5m]) * 100 > 95
+        for: 5m
+        labels:
+          severity: critical
+          component: "{{ $labels.job }}"
+        annotations:
+          summary: "Critical CPU usage on {{ $labels.job }}"
+          description: "CPU usage is {{ $value | humanizePercentage }} on {{ $labels.pod }} (threshold: 95%). Immediate action required!"
+          dashboard: "https://grafana.example.com/d/hookverse-system-health"
+          runbook: "https://docs.hookverse.dev/runbooks/high-cpu"
+
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            process_resident_memory_bytes{job=~"hookverse-.*"}
+            /
+            process_virtual_memory_max_bytes{job=~"hookverse-.*"}
+          ) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: "{{ $labels.job }}"
+        annotations:
+          summary: "High memory usage on {{ $labels.job }}"
+          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.pod }} (threshold: 80%)."
+          dashboard: "https://grafana.example.com/d/hookverse-system-health"
+          runbook: "https://docs.hookverse.dev/runbooks/high-memory"
+
+      - alert: CriticalMemoryUsage
+        expr: |
+          (
+            process_resident_memory_bytes{job=~"hookverse-.*"}
+            /
+            process_virtual_memory_max_bytes{job=~"hookverse-.*"}
+          ) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          component: "{{ $labels.job }}"
+        annotations:
+          summary: "Critical memory usage on {{ $labels.job }}"
+          description: "Memory usage is {{ $value | humanizePercentage }} on {{ $labels.pod }} (threshold: 90%). Risk of OOM!"
+          dashboard: "https://grafana.example.com/d/hookverse-system-health"
+          runbook: "https://docs.hookverse.dev/runbooks/high-memory"
+
+      - alert: FrequentGarbageCollection
+        expr: |
+          rate(dotnet_collection_count_total{job=~"hookverse-.*",generation="2"}[5m]) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: "{{ $labels.job }}"
+        annotations:
+          summary: "Frequent Gen2 garbage collections on {{ $labels.job }}"
+          description: "Gen2 GC rate is {{ $value }} collections/sec on {{ $labels.pod }} (threshold: 5). Memory pressure detected."
+          dashboard: "https://grafana.example.com/d/hookverse-system-health"
+          runbook: "https://docs.hookverse.dev/runbooks/gc-pressure"
+
+  # Database Alerts
+  - name: hookverse_database
+    interval: 30s
+    rules:
+      - alert: DatabaseConnectionFailures
+        expr: sum(rate(hookverse_database_connection_failures_total[5m])) > 1
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection failures detected"
+          description: "{{ $value }} database connection failures/sec. Check database health and connection pool."
+          dashboard: "https://grafana.example.com/d/hookverse-system-health"
+          runbook: "https://docs.hookverse.dev/runbooks/database-connection"
+
+      - alert: SlowDatabaseQueries
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(hookverse_database_query_duration_seconds_bucket[5m])) by (le)
+          ) > 1.0
+        for: 10m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Database p95 query time is {{ $value | humanizeDuration }} (threshold: 1s). Review query performance."
+          dashboard: "https://grafana.example.com/d/hookverse-system-health"
+          runbook: "https://docs.hookverse.dev/runbooks/slow-queries"
+
+  # Message Bus Alerts
+  - name: hookverse_message_bus
+    interval: 30s
+    rules:
+      - alert: MessageBusConnectionDown
+        expr: hookverse_messagebus_connected == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: message-bus
+        annotations:
+          summary: "Message bus connection down"
+          description: "Message bus connection is down on {{ $labels.pod }}. Webhook processing halted!"
+          dashboard: "https://grafana.example.com/d/hookverse-system-health"
+          runbook: "https://docs.hookverse.dev/runbooks/messagebus-connection"
+
+      - alert: MessageBusConsumerLag
+        expr: sum(hookverse_messagebus_consumer_lag) > 10000
+        for: 10m
+        labels:
+          severity: warning
+          component: message-bus
+        annotations:
+          summary: "Message bus consumer lag high"
+          description: "Consumer lag is {{ $value }} messages (threshold: 10,000). Scale workers or investigate slow processing."
+          dashboard: "https://grafana.example.com/d/hookverse-webhooks"
+          runbook: "https://docs.hookverse.dev/runbooks/consumer-lag"
