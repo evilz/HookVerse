@@ -489,9 +489,9 @@ All paths follow the .NET solution structure from plan.md:
 ### Operational Readiness
 
 - [X] T229 Run complete quickstart.md validation on fresh environment
-- [ ] T230 Perform load testing with 10,000 webhooks/second target
-- [ ] T231 Validate backup and restore procedures for database
-- [ ] T232 Create runbook for common operational scenarios in `docs/operations/runbook.md`
+- [X] T230 Perform load testing with 10,000 webhooks/second target
+- [X] T231 Validate backup and restore procedures for database
+- [X] T232 Create runbook for common operational scenarios in `docs/operations/runbook.md`
 
 ---
 
