@@ -34,12 +34,15 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         _factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
-                builder.ConfigureServices(services =>
+                builder.ConfigureTestServices(services =>
                 {
-                    // Remove existing DbContext and provider registrations
-                    var descriptor = services.SingleOrDefault(
-                        d => d.ServiceType == typeof(DbContextOptions<HookVerseDbContext>));
-                    if (descriptor != null)
+                    // Remove all DbContext-related registrations
+                    var descriptors = services.Where(d => 
+                        d.ServiceType == typeof(DbContextOptions<HookVerseDbContext>) ||
+                        d.ServiceType == typeof(DbContextOptions) ||
+                        d.ServiceType == typeof(HookVerseDbContext)).ToList();
+                    
+                    foreach (var descriptor in descriptors)
                     {
                         services.Remove(descriptor);
                     }
@@ -49,10 +52,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
                     {
                         options.UseSqlite(_connection);
                     });
-                });
-                
-                builder.ConfigureTestServices(services =>
-                {
+                    
                     // Initialize database after all services are configured
                     var serviceProvider = services.BuildServiceProvider();
                     using var scope = serviceProvider.CreateScope();
