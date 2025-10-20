@@ -1,0 +1,150 @@
+---
+# HookVerse Application Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hookverse-config
+  namespace: hookverse
+  labels:
+    app: hookverse
+data:
+  # Database Configuration
+  database-provider: "PostgreSQL"
+  database-max-retry-count: "3"
+  database-command-timeout: "30"
+  
+  # Message Bus Configuration
+  messagebus-transport: "RabbitMQ"
+  rabbitmq-host: "rabbitmq.hookverse.svc.cluster.local"
+  rabbitmq-port: "5672"
+  rabbitmq-virtual-host: "/"
+  
+  # OpenTelemetry Configuration
+  otel-endpoint: "http://otel-collector.observability.svc.cluster.local:4317"
+  otel-service-name: "hookverse"
+  otel-service-version: "1.0.0"
+  
+  # Worker Configuration
+  worker-max-concurrency: "100"
+  worker-retry-attempts: "5"
+  worker-retry-backoff-seconds: "60,120,300,900,3600"
+  worker-circuit-breaker-threshold: "5"
+  worker-circuit-breaker-duration-seconds: "30"
+  
+  # API Configuration
+  api-rate-limit-requests-per-minute: "1000"
+  api-max-request-body-size: "1048576"  # 1MB
+  api-cors-allowed-origins: "*"
+  api-versioning-default: "1.0"
+  
+  # Webhook Delivery Configuration
+  webhook-timeout-seconds: "30"
+  webhook-max-payload-size: "262144"  # 256KB
+  webhook-max-headers: "50"
+  webhook-user-agent: "HookVerse/1.0"
+  
+  # Retry Configuration
+  retry-strategy: "exponential"
+  retry-max-attempts: "5"
+  retry-initial-interval-seconds: "60"
+  retry-max-interval-seconds: "3600"
+  retry-multiplier: "2.0"
+  
+  # Schema Validation Configuration
+  schema-validation-enabled: "true"
+  schema-max-size-bytes: "102400"  # 100KB
+  schema-cache-duration-minutes: "60"
+  
+  # Security Configuration
+  security-api-key-header: "X-API-Key"
+  security-hmac-algorithm: "HmacSHA256"
+  security-encryption-algorithm: "AES256"
+  
+  # Logging Configuration
+  logging-level: "Information"
+  logging-include-scopes: "true"
+  logging-json-output: "true"
+  
+  # Health Check Configuration
+  healthcheck-timeout-seconds: "5"
+  healthcheck-interval-seconds: "10"
+  
+  # Metrics Configuration
+  metrics-enabled: "true"
+  metrics-port: "8082"
+  metrics-path: "/metrics"
+  
+  # Feature Flags
+  feature-schema-validation: "true"
+  feature-mock-endpoints: "true"
+  feature-gdpr-compliance: "true"
+  feature-message-bus-integration: "true"
+  feature-dashboard: "true"
+  
+  # Cache Configuration (if Redis is enabled)
+  cache-enabled: "false"
+  cache-redis-host: "redis.hookverse.svc.cluster.local"
+  cache-redis-port: "6379"
+  cache-default-expiration-minutes: "30"
+  
+  # GDPR Configuration
+  gdpr-retention-days: "90"
+  gdpr-export-max-records: "100000"
+  gdpr-delete-batch-size: "1000"
+  
+  # Dashboard Configuration
+  dashboard-refresh-interval-seconds: "5"
+  dashboard-max-events-display: "100"
+  dashboard-timezone: "UTC"
+---
+# HookVerse Logging Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hookverse-logging-config
+  namespace: hookverse
+  labels:
+    app: hookverse
+data:
+  appsettings.Production.json: |
+    {
+      "Logging": {
+        "LogLevel": {
+          "Default": "Information",
+          "Microsoft": "Warning",
+          "Microsoft.Hosting.Lifetime": "Information",
+          "Microsoft.EntityFrameworkCore": "Warning",
+          "System.Net.Http.HttpClient": "Warning"
+        },
+        "Console": {
+          "FormatterName": "json",
+          "FormatterOptions": {
+            "SingleLine": false,
+            "IncludeScopes": true,
+            "TimestampFormat": "yyyy-MM-dd HH:mm:ss ",
+            "UseUtcTimestamp": true,
+            "JsonWriterOptions": {
+              "Indented": false
+            }
+          }
+        }
+      },
+      "AllowedHosts": "*"
+    }
+---
+# HookVerse Environment-Specific Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hookverse-env-config
+  namespace: hookverse
+  labels:
+    app: hookverse
+    environment: production
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  DOTNET_ENVIRONMENT: "Production"
+  ASPNETCORE_URLS: "http://+:8080"
+  TZ: "UTC"
+  LANG: "en_US.UTF-8"
+  LC_ALL: "en_US.UTF-8"
