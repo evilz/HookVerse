@@ -12,6 +12,7 @@ public class HookVerseDbContext : DbContext
 
     // DbSets for User Story 1 entities
     public DbSet<Subscriber> Subscribers => Set<Subscriber>();
+    public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
     public DbSet<EventType> EventTypes => Set<EventType>();
     public DbSet<SchemaDefinition> SchemaDefinitions => Set<SchemaDefinition>();
     public DbSet<WebhookEvent> WebhookEvents => Set<WebhookEvent>();

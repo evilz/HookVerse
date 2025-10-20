@@ -29,6 +29,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         // Use an in-memory SQLite connection to run tests quickly without Docker
+        // Keep connection open for the lifetime of the test to maintain the in-memory database
         _connection = new SqliteConnection("DataSource=:memory:");
         _connection.Open();
 
@@ -41,15 +42,26 @@ public abstract class IntegrationTestBase : IAsyncLifetime
 
                 builder.ConfigureTestServices(services =>
                 {
-                    // Initialize database after all services are configured
-                    var sp = services.BuildServiceProvider();
-                    using var scope = sp.CreateScope();
-                    var dbContext = scope.ServiceProvider.GetRequiredService<HookVerseDbContext>();
-                    dbContext.Database.EnsureCreated();
+                    // Replace DbContext registration to use the shared connection
+                    var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<HookVerseDbContext>));
+                    if (descriptor != null)
+                    {
+                        services.Remove(descriptor);
+                    }
+
+                    // Register DbContext with the shared SQLite connection
+                    services.AddDbContext<HookVerseDbContext>(options =>
+                    {
+                        options.UseSqlite(_connection);
+                    });
                 });
             });
 
         _client = _factory.CreateClient();
+
+        // Initialize database schema after factory is created
+        var dbContext = GetDbContext();
+        await dbContext.Database.EnsureCreatedAsync();
     }
 
     /// <summary>

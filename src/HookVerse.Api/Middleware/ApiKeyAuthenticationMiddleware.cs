@@ -53,11 +53,13 @@ public class ApiKeyAuthenticationMiddleware
             return;
         }
 
-        // Store tenant ID in context for downstream use
+        // Store subscriber ID in context for downstream use
+        // Note: TenantId and SubscriberId are the same concept in this system
+        context.Items["SubscriberId"] = validationResult.TenantId;
         context.Items["TenantId"] = validationResult.TenantId;
         context.Items["ApiKeyId"] = validationResult.ApiKeyId;
 
-        _logger.LogDebug("Authenticated request for tenant {TenantId}", validationResult.TenantId);
+        _logger.LogDebug("Authenticated request for subscriber {SubscriberId}", validationResult.TenantId);
 
         await _next(context);
     }
