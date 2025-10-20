@@ -468,9 +468,9 @@ All paths follow the .NET solution structure from plan.md:
 
 ### Observability Enhancements
 
-- [ ] T218 [P] Create Grafana dashboards for webhook delivery metrics in `docs/observability/grafana/`
-- [ ] T219 [P] Create Prometheus alert rules in `docs/observability/prometheus/alerts.yml`
-- [ ] T220 [P] Document OpenTelemetry collector configuration in `docs/observability/otel-collector-config.yaml`
+- [X] T218 [P] Create Grafana dashboards for webhook delivery metrics in `docs/observability/grafana/`
+- [X] T219 [P] Create Prometheus alert rules in `docs/observability/prometheus/alerts.yml`
+- [X] T220 [P] Document OpenTelemetry collector configuration in `docs/observability/otel-collector-config.yaml`
 
 ### Security Hardening
 
