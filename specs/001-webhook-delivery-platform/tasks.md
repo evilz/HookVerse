@@ -423,14 +423,14 @@ All paths follow the .NET solution structure from plan.md:
 - [X] T196 [US7] Implement `GdprService` in `src/HookVerse.Core/Services/GdprService.cs`
 - [X] T197 [US7] Implement data export logic: query all subscriber data, serialize to JSON, store in blob storage
 - [X] T198 [US7] Implement data deletion logic: delete personal data (endpoint URLs, custom headers, payloads), preserve audit trails
-- [ ] T199 [US7] Create background worker for processing GDPR requests in `src/HookVerse.Worker/Workers/GdprRequestWorker.cs`
+- [X] T199 [US7] Create background worker for processing GDPR requests in `src/HookVerse.Worker/Workers/GdprRequestWorker.cs`
 
 ### Retention & Purging for User Story 7
 
-- [ ] T200 [US7] Create `DataRetentionWorker` background service in `src/HookVerse.Worker/Workers/DataRetentionWorker.cs`
-- [ ] T201 [US7] Implement automatic payload purging based on ExpiresAt timestamp
-- [ ] T202 [US7] Configure retention schedule (runs daily at midnight) in worker appsettings.json
-- [ ] T203 [US7] Add logging for retention operations and GDPR request processing
+- [X] T200 [US7] Create `DataRetentionWorker` background service in `src/HookVerse.Worker/Workers/DataRetentionWorker.cs`
+- [X] T201 [US7] Implement automatic payload purging based on ExpiresAt timestamp
+- [X] T202 [US7] Configure retention schedule (runs daily at midnight) in worker appsettings.json
+- [X] T203 [US7] Add logging for retention operations and GDPR request processing
 
 ### Integration for User Story 7
 

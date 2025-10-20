@@ -1,10 +1,12 @@
 using HookVerse.Core.Interfaces;
+using HookVerse.Core.Services;
 using HookVerse.Infrastructure.Data;
 using HookVerse.Infrastructure.MessageBus;
 using HookVerse.Infrastructure.Repositories;
 using HookVerse.Infrastructure.SchemaValidation;
 using HookVerse.Infrastructure.Services;
 using HookVerse.Worker.Consumers;
+using HookVerse.Worker.Workers;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -46,11 +48,14 @@ try
     builder.Services.AddScoped<IWebhookEventRepository, WebhookEventRepository>();
     builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
     builder.Services.AddScoped<IDeliveryAttemptRepository, DeliveryAttemptRepository>();
+    builder.Services.AddScoped<IMockEndpointRepository, MockEndpointRepository>();
+    builder.Services.AddScoped<IGdprRequestRepository, GdprRequestRepository>();
 
     // Register business services
     builder.Services.AddScoped<IWebhookService, WebhookService>();
     builder.Services.AddScoped<ISignatureService, HmacSignatureService>();
     builder.Services.AddScoped<IDeliveryService, DeliveryService>();
+    builder.Services.AddScoped<IGdprService, GdprService>();
     builder.Services.AddHttpClient<IDeliveryService, DeliveryService>();
 
     // Register schema validators
@@ -59,6 +64,10 @@ try
 
     // Add Message Bus
     builder.Services.AddMessageBus(builder.Configuration);
+
+    // Register background workers
+    builder.Services.AddHostedService<GdprRequestWorker>();
+    builder.Services.AddHostedService<DataRetentionWorker>();
 
     // Register MassTransit consumer
     builder.Services.AddMassTransit(busConfig =>
