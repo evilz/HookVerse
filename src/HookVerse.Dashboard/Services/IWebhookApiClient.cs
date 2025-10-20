@@ -39,4 +39,47 @@ public interface IWebhookApiClient
     /// </summary>
     Task<List<EventTypeInfo>> GetEventTypesAsync(
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get all mock endpoints
+    /// </summary>
+    Task<List<MockEndpointResponse>> GetMockEndpointsAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get mock endpoint by ID
+    /// </summary>
+    Task<MockEndpointResponse?> GetMockEndpointAsync(
+        Guid id,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Create a new mock endpoint
+    /// </summary>
+    Task<MockEndpointResponse> CreateMockEndpointAsync(
+        CreateMockEndpointRequest request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Update a mock endpoint
+    /// </summary>
+    Task<MockEndpointResponse> UpdateMockEndpointAsync(
+        Guid id,
+        UpdateMockEndpointRequest request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Delete a mock endpoint
+    /// </summary>
+    Task<bool> DeleteMockEndpointAsync(
+        Guid id,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Trigger a test webhook to a mock endpoint
+    /// </summary>
+    Task<TriggerMockWebhookResponse?> TriggerMockWebhookAsync(
+        Guid id,
+        TriggerMockWebhookRequest request,
+        CancellationToken cancellationToken = default);
 }

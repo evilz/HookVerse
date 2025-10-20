@@ -135,6 +135,119 @@ public class WebhookApiClient : IWebhookApiClient
         }
     }
 
+    public async Task<List<MockEndpointResponse>> GetMockEndpointsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync("/api/v1/mock-endpoints", cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var result = await response.Content.ReadFromJsonAsync<List<MockEndpointResponse>>(_jsonOptions, cancellationToken);
+            return result ?? new List<MockEndpointResponse>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting mock endpoints");
+            return new List<MockEndpointResponse>();
+        }
+    }
+
+    public async Task<MockEndpointResponse?> GetMockEndpointAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync($"/api/v1/mock-endpoints/{id}", cancellationToken);
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return null;
+
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadFromJsonAsync<MockEndpointResponse>(_jsonOptions, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting mock endpoint {Id}", id);
+            return null;
+        }
+    }
+
+    public async Task<MockEndpointResponse> CreateMockEndpointAsync(
+        CreateMockEndpointRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("/api/v1/mock-endpoints", request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var result = await response.Content.ReadFromJsonAsync<MockEndpointResponse>(_jsonOptions, cancellationToken);
+            return result ?? throw new Exception("Failed to create mock endpoint");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating mock endpoint");
+            throw;
+        }
+    }
+
+    public async Task<MockEndpointResponse> UpdateMockEndpointAsync(
+        Guid id,
+        UpdateMockEndpointRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _httpClient.PutAsJsonAsync($"/api/v1/mock-endpoints/{id}", request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var result = await response.Content.ReadFromJsonAsync<MockEndpointResponse>(_jsonOptions, cancellationToken);
+            return result ?? throw new Exception("Failed to update mock endpoint");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating mock endpoint {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteMockEndpointAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"/api/v1/mock-endpoints/{id}", cancellationToken);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting mock endpoint {Id}", id);
+            return false;
+        }
+    }
+
+    public async Task<TriggerMockWebhookResponse?> TriggerMockWebhookAsync(
+        Guid id,
+        TriggerMockWebhookRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync($"/api/v1/mock-endpoints/{id}/trigger", request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            return await response.Content.ReadFromJsonAsync<TriggerMockWebhookResponse>(_jsonOptions, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error triggering mock webhook for endpoint {Id}", id);
+            return null;
+        }
+    }
+
     private class PaginatedResult<T>
     {
         public List<T> Items { get; set; } = new();

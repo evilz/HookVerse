@@ -97,8 +97,8 @@ public interface IMockEndpointService
     /// <param name="clientIp">Client IP address.</param>
     /// <param name="userAgent">User agent string.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Response details (status, body, headers, delay).</returns>
-    Task<(int Status, string? Body, string ContentType, Dictionary<string, string>? Headers, int DelayMs)> HandleMockRequestAsync(
+    /// <returns>Response details (status, body, headers, delay, endpointId).</returns>
+    Task<(int Status, string? Body, string ContentType, Dictionary<string, string>? Headers, int DelayMs, Guid? EndpointId)> HandleMockRequestAsync(
         string urlPath,
         string method,
         string? queryString,

@@ -96,6 +96,15 @@ public static class ServiceCollectionExtensions
             return new SchemaValidationMetrics(meterFactory);
         });
 
+        services.AddSingleton<MockEndpointMetrics>(sp =>
+        {
+            var meterFactory = sp.GetRequiredService<IMeterFactory>();
+            var dbContext = sp.CreateScope().ServiceProvider.GetRequiredService<HookVerseDbContext>();
+            var metrics = new MockEndpointMetrics(meterFactory);
+            metrics.SetActiveEndpointsProvider(() => dbContext.MockEndpoints.Count(m => m.IsActive));
+            return metrics;
+        });
+
         return services;
     }
 

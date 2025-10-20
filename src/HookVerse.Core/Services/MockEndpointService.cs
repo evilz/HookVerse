@@ -120,7 +120,7 @@ public class MockEndpointService : IMockEndpointService
     }
 
     /// <inheritdoc />
-    public async Task<(int Status, string? Body, string ContentType, Dictionary<string, string>? Headers, int DelayMs)> HandleMockRequestAsync(
+    public async Task<(int Status, string? Body, string ContentType, Dictionary<string, string>? Headers, int DelayMs, Guid? EndpointId)> HandleMockRequestAsync(
         string urlPath,
         string method,
         string? queryString,
@@ -136,7 +136,7 @@ public class MockEndpointService : IMockEndpointService
         
         if (mockEndpoint == null || !mockEndpoint.IsActive)
         {
-            return (404, "{\"error\":\"Mock endpoint not found\"}", "application/json", null, 0);
+            return (404, "{\"error\":\"Mock endpoint not found\"}", "application/json", null, 0, null);
         }
 
         // Log the request
@@ -181,7 +181,8 @@ public class MockEndpointService : IMockEndpointService
             mockEndpoint.ResponseBody,
             mockEndpoint.ResponseContentType,
             responseHeaders,
-            mockEndpoint.ResponseDelayMs
+            mockEndpoint.ResponseDelayMs,
+            mockEndpoint.Id
         );
     }
 }

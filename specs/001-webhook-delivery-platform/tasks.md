@@ -378,8 +378,8 @@ All paths follow the .NET solution structure from plan.md:
 
 ### Integration for User Story 4
 
-- [ ] T179 [US4] Add mock endpoint management UI in dashboard at `src/HookVerse.Dashboard/Pages/MockEndpoints.razor`
-- [ ] T180 [US4] Add OpenTelemetry metrics for mock endpoint usage
+- [X] T179 [US4] Add mock endpoint management UI in dashboard at `src/HookVerse.Dashboard/Pages/MockEndpoints.razor`
+- [X] T180 [US4] Add OpenTelemetry metrics for mock endpoint usage
 
 **Checkpoint**: User Stories 1, 6, 2, 3, 5, AND 4 work - developers can test with mock endpoints
 

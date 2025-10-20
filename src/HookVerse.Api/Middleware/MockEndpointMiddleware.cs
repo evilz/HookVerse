@@ -1,4 +1,6 @@
 using HookVerse.Core.Interfaces;
+using HookVerse.Infrastructure.Metrics;
+using System.Diagnostics;
 using System.Text;
 
 namespace HookVerse.Api.Middleware;
@@ -17,7 +19,7 @@ public class MockEndpointMiddleware
         _logger = logger;
     }
 
-    public async Task InvokeAsync(HttpContext context, IMockEndpointService mockEndpointService)
+    public async Task InvokeAsync(HttpContext context, IMockEndpointService mockEndpointService, MockEndpointMetrics metrics)
     {
         // Check if the request is for a mock endpoint (starts with /mock/)
         if (!context.Request.Path.StartsWithSegments("/mock"))
@@ -25,6 +27,10 @@ public class MockEndpointMiddleware
             await _next(context);
             return;
         }
+
+        var stopwatch = Stopwatch.StartNew();
+        Guid? endpointId = null;
+        int statusCode = 200;
 
         try
         {
@@ -53,7 +59,7 @@ public class MockEndpointMiddleware
             var userAgent = context.Request.Headers.UserAgent.FirstOrDefault();
 
             // Handle the mock request
-            var (status, responseBody, responseContentType, responseHeaders, delayMs) =
+            var (status, responseBody, responseContentType, responseHeaders, delayMs, mockEndpointId) =
                 await mockEndpointService.HandleMockRequestAsync(
                     urlPath,
                     method,
@@ -64,6 +70,9 @@ public class MockEndpointMiddleware
                     clientIp,
                     userAgent,
                     context.RequestAborted);
+
+            statusCode = status;
+            endpointId = mockEndpointId;
 
             // Apply configured delay
             if (delayMs > 0)
@@ -93,6 +102,14 @@ public class MockEndpointMiddleware
             _logger.LogInformation(
                 "Mock endpoint request handled: {Method} {Path} -> {Status}",
                 method, urlPath, status);
+
+            // Record metrics
+            if (endpointId.HasValue)
+            {
+                stopwatch.Stop();
+                metrics.RecordRequest(endpointId.Value, method, statusCode);
+                metrics.RecordResponseTime(endpointId.Value, stopwatch.Elapsed.TotalMilliseconds);
+            }
         }
         catch (Exception ex)
         {
