@@ -474,10 +474,10 @@ All paths follow the .NET solution structure from plan.md:
 
 ### Security Hardening
 
-- [ ] T221 [P] Implement API key rotation mechanism in `src/HookVerse.Infrastructure/Services/ApiKeyRotationService.cs`
-- [ ] T222 [P] Add encryption key rotation for payload and secret encryption
-- [ ] T223 [P] Configure Content Security Policy headers in API middleware
-- [ ] T224 [P] Add dependency vulnerability scanning to CI/CD pipeline
+- [X] T221 [P] Implement API key rotation mechanism in `src/HookVerse.Infrastructure/Services/ApiKeyRotationService.cs`
+- [X] T222 [P] Add encryption key rotation for payload and secret encryption
+- [X] T223 [P] Configure Content Security Policy headers in API middleware
+- [X] T224 [P] Add dependency vulnerability scanning to CI/CD pipeline
 
 ### Performance Optimization
 
