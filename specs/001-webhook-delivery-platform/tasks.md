@@ -409,20 +409,20 @@ All paths follow the .NET solution structure from plan.md:
 
 ### API Controllers for User Story 7
 
-- [ ] T188 [P] [US7] Create DTOs: `CreateGdprExportRequest`, `CreateGdprDeleteRequest`, `GdprRequestResponse` in `src/HookVerse.Api/Models/`
-- [ ] T189 [US7] Create `GdprController` in `src/HookVerse.Api/Controllers/GdprController.cs`
-- [ ] T190 [US7] Add POST /api/v1/gdpr/export endpoint to request data export
-- [ ] T191 [US7] Add POST /api/v1/gdpr/delete endpoint to request data deletion
-- [ ] T192 [US7] Add GET /api/v1/gdpr/requests endpoint to list GDPR requests
-- [ ] T193 [US7] Add GET /api/v1/gdpr/requests/{id} endpoint to get request status
-- [ ] T194 [US7] Add GET /api/v1/gdpr/export/{id}/download endpoint to download export file
+- [X] T188 [P] [US7] Create DTOs: `CreateGdprExportRequest`, `CreateGdprDeleteRequest`, `GdprRequestResponse` in `src/HookVerse.Api/Models/`
+- [X] T189 [US7] Create `GdprController` in `src/HookVerse.Api/Controllers/GdprController.cs`
+- [X] T190 [US7] Add POST /api/v1/gdpr/export endpoint to request data export
+- [X] T191 [US7] Add POST /api/v1/gdpr/delete endpoint to request data deletion
+- [X] T192 [US7] Add GET /api/v1/gdpr/requests endpoint to list GDPR requests
+- [X] T193 [US7] Add GET /api/v1/gdpr/requests/{id} endpoint to get request status
+- [X] T194 [US7] Add GET /api/v1/gdpr/export/{id}/download endpoint to download export file
 
 ### Business Logic for User Story 7
 
-- [ ] T195 [US7] Create `IGdprService` interface in `src/HookVerse.Core/Interfaces/IGdprService.cs`
-- [ ] T196 [US7] Implement `GdprService` in `src/HookVerse.Core/Services/GdprService.cs`
-- [ ] T197 [US7] Implement data export logic: query all subscriber data, serialize to JSON, store in blob storage
-- [ ] T198 [US7] Implement data deletion logic: delete personal data (endpoint URLs, custom headers, payloads), preserve audit trails
+- [X] T195 [US7] Create `IGdprService` interface in `src/HookVerse.Core/Interfaces/IGdprService.cs`
+- [X] T196 [US7] Implement `GdprService` in `src/HookVerse.Core/Services/GdprService.cs`
+- [X] T197 [US7] Implement data export logic: query all subscriber data, serialize to JSON, store in blob storage
+- [X] T198 [US7] Implement data deletion logic: delete personal data (endpoint URLs, custom headers, payloads), preserve audit trails
 - [ ] T199 [US7] Create background worker for processing GDPR requests in `src/HookVerse.Worker/Workers/GdprRequestWorker.cs`
 
 ### Retention & Purging for User Story 7

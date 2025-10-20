@@ -46,6 +46,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
         services.AddScoped<IDeliveryAttemptRepository, DeliveryAttemptRepository>();
         services.AddScoped<IMockEndpointRepository, MockEndpointRepository>();
+        services.AddScoped<IGdprRequestRepository, GdprRequestRepository>();
 
         return services;
     }
@@ -71,6 +72,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<IAnalyticsService, AnalyticsService>();
         services.AddScoped<IMockEndpointService, MockEndpointService>();
+        services.AddScoped<IGdprService, GdprService>();
         
         // Register HttpClient for DeliveryService
         services.AddHttpClient<IDeliveryService, DeliveryService>();
