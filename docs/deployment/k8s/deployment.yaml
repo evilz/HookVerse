@@ -1,0 +1,358 @@
+---
+# HookVerse API Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hookverse-api
+  namespace: hookverse
+  labels:
+    app: hookverse
+    component: api
+    version: v1
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: hookverse
+      component: api
+  template:
+    metadata:
+      labels:
+        app: hookverse
+        component: api
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: hookverse-api
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: api
+        image: hookverse/api:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: health
+          containerPort: 8081
+          protocol: TCP
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Production"
+        - name: ASPNETCORE_URLS
+          value: "http://+:8080"
+        - name: Database__Provider
+          valueFrom:
+            configMapKeyRef:
+              name: hookverse-config
+              key: database-provider
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: hookverse-secrets
+              key: database-connection-string
+        - name: MessageBus__Transport
+          valueFrom:
+            configMapKeyRef:
+              name: hookverse-config
+              key: messagebus-transport
+        - name: MessageBus__RabbitMQ__Host
+          valueFrom:
+            configMapKeyRef:
+              name: hookverse-config
+              key: rabbitmq-host
+        - name: MessageBus__RabbitMQ__Port
+          valueFrom:
+            configMapKeyRef:
+              name: hookverse-config
+              key: rabbitmq-port
+        - name: MessageBus__RabbitMQ__Username
+          valueFrom:
+            secretKeyRef:
+              name: hookverse-secrets
+              key: rabbitmq-username
+        - name: MessageBus__RabbitMQ__Password
+          valueFrom:
+            secretKeyRef:
+              name: hookverse-secrets
+              key: rabbitmq-password
+        - name: OpenTelemetry__Endpoint
+          valueFrom:
+            configMapKeyRef:
+              name: hookverse-config
+              key: otel-endpoint
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: health
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: health
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: health
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 30
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: logs
+        emptyDir: {}
+---
+# HookVerse Worker Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hookverse-worker
+  namespace: hookverse
+  labels:
+    app: hookverse
+    component: worker
+    version: v1
+spec:
+  replicas: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: hookverse
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: hookverse
+        component: worker
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8082"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: hookverse-worker
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: worker
+        image: hookverse/worker:latest
+        imagePullPolicy: Always
+        ports:
+        - name: metrics
+          containerPort: 8082
+          protocol: TCP
+        - name: health
+          containerPort: 8083
+          protocol: TCP
+        env:
+        - name: DOTNET_ENVIRONMENT
+          value: "Production"
+        - name: Database__Provider
+          valueFrom:
+            configMapKeyRef:
+              name: hookverse-config
+              key: database-provider
+        - name: ConnectionStrings__DefaultConnection
+          valueFrom:
+            secretKeyRef:
+              name: hookverse-secrets
+              key: database-connection-string
+        - name: MessageBus__Transport
+          valueFrom:
+            configMapKeyRef:
+              name: hookverse-config
+              key: messagebus-transport
+        - name: MessageBus__RabbitMQ__Host
+          valueFrom:
+            configMapKeyRef:
+              name: hookverse-config
+              key: rabbitmq-host
+        - name: MessageBus__RabbitMQ__Port
+          valueFrom:
+            configMapKeyRef:
+              name: hookverse-config
+              key: rabbitmq-port
+        - name: MessageBus__RabbitMQ__Username
+          valueFrom:
+            secretKeyRef:
+              name: hookverse-secrets
+              key: rabbitmq-username
+        - name: MessageBus__RabbitMQ__Password
+          valueFrom:
+            secretKeyRef:
+              name: hookverse-secrets
+              key: rabbitmq-password
+        - name: OpenTelemetry__Endpoint
+          valueFrom:
+            configMapKeyRef:
+              name: hookverse-config
+              key: otel-endpoint
+        - name: Delivery__MaxConcurrency
+          valueFrom:
+            configMapKeyRef:
+              name: hookverse-config
+              key: worker-max-concurrency
+        - name: Delivery__RetryAttempts
+          valueFrom:
+            configMapKeyRef:
+              name: hookverse-config
+              key: worker-retry-attempts
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 1Gi
+          limits:
+            cpu: 4000m
+            memory: 4Gi
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: health
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: health
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /health/startup
+            port: health
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 30
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+      volumes:
+      - name: logs
+        emptyDir: {}
+---
+# Horizontal Pod Autoscaler for API
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hookverse-api-hpa
+  namespace: hookverse
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hookverse-api
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 4
+        periodSeconds: 30
+      selectPolicy: Max
+---
+# Horizontal Pod Autoscaler for Worker
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hookverse-worker-hpa
+  namespace: hookverse
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hookverse-worker
+  minReplicas: 5
+  maxReplicas: 50
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 85
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 600
+      policies:
+      - type: Percent
+        value: 25
+        periodSeconds: 120
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 10
+        periodSeconds: 30
+      selectPolicy: Max
