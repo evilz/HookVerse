@@ -1,0 +1,19 @@
+apiVersion: v2
+name: hookverse
+description: A Helm chart for HookVerse - Open-Source Webhooks-as-a-Service Platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - webhooks
+  - webhook-delivery
+  - api
+  - microservices
+  - messaging
+home: https://github.com/evilz/HookVerse
+sources:
+  - https://github.com/evilz/HookVerse
+maintainers:
+  - name: HookVerse Team
+    email: team@hookverse.dev
+icon: https://hookverse.dev/logo.png
