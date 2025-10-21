@@ -1,0 +1,371 @@
+@page "/gdpr-requests"
+@using HookVerse.Dashboard.Models
+@using HookVerse.Dashboard.Services
+@inject IWebhookApiClient ApiClient
+@inject ILogger<GdprRequests> Logger
+@rendermode InteractiveServer
+
+<PageTitle>GDPR Requests - HookVerse</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h3 mb-3">
+                <i class="bi bi-shield-check"></i> GDPR Data Requests
+            </h1>
+            <p class="text-muted">
+                Manage your personal data export and deletion requests
+            </p>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary me-2" @onclick="CreateExportRequest" disabled="@isProcessing">
+                <i class="bi bi-download"></i> Request Data Export
+            </button>
+            <button class="btn btn-danger" @onclick="ShowDeleteConfirmation" disabled="@isProcessing">
+                <i class="bi bi-trash"></i> Request Data Deletion
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Loading GDPR requests...</p>
+        </div>
+    }
+    else if (errorMessage != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+        </div>
+    }
+    else if (successMessage != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle"></i> @successMessage
+            <button type="button" class="btn-close" @onclick="() => successMessage = null"></button>
+        </div>
+    }
+
+    @if (!isLoading && requests.Count == 0)
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-inbox display-1 text-muted"></i>
+                <h4 class="mt-3">No GDPR requests yet</h4>
+                <p class="text-muted">You haven't made any data export or deletion requests.</p>
+                <button class="btn btn-primary mt-2" @onclick="CreateExportRequest">
+                    <i class="bi bi-download"></i> Request Data Export
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Created</th>
+                                <th>Completed</th>
+                                <th>File Size</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var request in requests.OrderByDescending(r => r.CreatedAt))
+                            {
+                                <tr>
+                                    <td>
+                                        @if (request.RequestType == "Export")
+                                        {
+                                            <span class="badge bg-info">
+                                                <i class="bi bi-download"></i> Export
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>@RenderStatusBadge(request)</td>
+                                    <td>
+                                        <small>@request.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</small>
+                                    </td>
+                                    <td>
+                                        @if (request.CompletedAt.HasValue)
+                                        {
+                                            <small>@request.CompletedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")</small>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (request.ExportFileSizeBytes.HasValue)
+                                        {
+                                            <small>@FormatFileSize(request.ExportFileSizeBytes.Value)</small>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (request.RequestType == "Export" && request.Status == "Completed" && request.ExportFilePath != null)
+                                        {
+                                            <button class="btn btn-sm btn-success" @onclick="() => DownloadExport(request.Id)">
+                                                <i class="bi bi-cloud-download"></i> Download
+                                            </button>
+                                        }
+                                        @if (request.Status == "Failed")
+                                        {
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => ShowErrorDetails(request)">
+                                                <i class="bi bi-exclamation-circle"></i> View Error
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Delete Confirmation Modal -->
+    @if (showDeleteModal)
+    {
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-exclamation-triangle"></i> Confirm Data Deletion
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="HideDeleteConfirmation"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="fw-bold">This action will permanently delete your personal data:</p>
+                        <ul>
+                            <li>All webhook subscriptions and endpoint URLs</li>
+                            <li>All webhook event payloads and metadata</li>
+                            <li>All mock endpoints and request logs</li>
+                            <li>Your account name will be anonymized</li>
+                        </ul>
+                        <p class="text-danger fw-bold">This action cannot be undone!</p>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="confirmDelete" @bind="deleteConfirmed">
+                            <label class="form-check-label" for="confirmDelete">
+                                I understand that this will permanently delete my personal data
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="HideDeleteConfirmation">Cancel</button>
+                        <button type="button" class="btn btn-danger" @onclick="CreateDeleteRequest" disabled="@(!deleteConfirmed || isProcessing)">
+                            <i class="bi bi-trash"></i> Delete My Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Error Details Modal -->
+    @if (showErrorModal && selectedRequest != null)
+    {
+        <div class="modal fade show d-block" tabindex="-1" role="dialog" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-exclamation-circle"></i> Request Failed
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" @onclick="HideErrorDetails"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>Request ID:</strong> @selectedRequest.Id</p>
+                        <p><strong>Type:</strong> @selectedRequest.RequestType</p>
+                        <p><strong>Created:</strong> @selectedRequest.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</p>
+                        <hr />
+                        <p><strong>Error:</strong></p>
+                        <pre class="bg-light p-3 rounded">@selectedRequest.ErrorMessage</pre>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="HideErrorDetails">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<GdprRequestResponse> requests = new();
+    private bool isLoading = true;
+    private bool isProcessing = false;
+    private string? errorMessage;
+    private string? successMessage;
+    private bool showDeleteModal = false;
+    private bool showErrorModal = false;
+    private bool deleteConfirmed = false;
+    private GdprRequestResponse? selectedRequest;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRequests();
+    }
+
+    private async Task LoadRequests()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            requests = await ApiClient.GetGdprRequestsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading GDPR requests");
+            errorMessage = "Failed to load GDPR requests. Please try again.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task CreateExportRequest()
+    {
+        isProcessing = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            var request = await ApiClient.CreateGdprExportRequestAsync();
+            successMessage = "Data export request created successfully. You will be notified when it's ready.";
+            await LoadRequests();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating export request");
+            errorMessage = "Failed to create export request. Please try again.";
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private void ShowDeleteConfirmation()
+    {
+        deleteConfirmed = false;
+        showDeleteModal = true;
+    }
+
+    private void HideDeleteConfirmation()
+    {
+        showDeleteModal = false;
+        deleteConfirmed = false;
+    }
+
+    private async Task CreateDeleteRequest()
+    {
+        if (!deleteConfirmed) return;
+
+        isProcessing = true;
+        errorMessage = null;
+        successMessage = null;
+
+        try
+        {
+            var request = await ApiClient.CreateGdprDeleteRequestAsync();
+            successMessage = "Data deletion request created successfully. Your data will be permanently removed.";
+            HideDeleteConfirmation();
+            await LoadRequests();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating delete request");
+            errorMessage = "Failed to create deletion request. Please try again.";
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task DownloadExport(Guid requestId)
+    {
+        try
+        {
+            var result = await ApiClient.DownloadGdprExportAsync(requestId);
+            if (result == null)
+            {
+                errorMessage = "Export file not found or not ready yet.";
+                return;
+            }
+
+            // In a real app, we'd trigger a browser download
+            // For now, just show success
+            successMessage = $"Downloaded {result.Value.FileName} ({FormatFileSize(result.Value.Data.Length)})";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error downloading export");
+            errorMessage = "Failed to download export file. Please try again.";
+        }
+    }
+
+    private void ShowErrorDetails(GdprRequestResponse request)
+    {
+        selectedRequest = request;
+        showErrorModal = true;
+    }
+
+    private void HideErrorDetails()
+    {
+        showErrorModal = false;
+        selectedRequest = null;
+    }
+
+    private RenderFragment RenderStatusBadge(GdprRequestResponse request)
+    {
+        return request.Status switch
+        {
+            "Pending" => @<span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Pending</span>,
+            "Processing" => @<span class="badge bg-primary"><i class="bi bi-hourglass-split"></i> Processing</span>,
+            "Completed" => @<span class="badge bg-success"><i class="bi bi-check-circle"></i> Completed</span>,
+            "Failed" => @<span class="badge bg-danger"><i class="bi bi-x-circle"></i> Failed</span>,
+            _ => @<span class="badge bg-secondary">@request.Status</span>
+        };
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB" };
+        double len = bytes;
+        int order = 0;
+        while (len >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            len = len / 1024;
+        }
+        return $"{len:0.##} {sizes[order]}";
+    }
+}

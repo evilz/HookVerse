@@ -1,0 +1,287 @@
+# Default values for HookVerse Helm chart
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Global configuration
+global:
+  namespace: hookverse
+  environment: production
+  imageRegistry: docker.io
+  imagePullSecrets: []
+  
+# API Service configuration
+api:
+  enabled: true
+  replicaCount: 3
+  
+  image:
+    repository: hookverse/api
+    tag: latest
+    pullPolicy: Always
+  
+  service:
+    type: LoadBalancer
+    port: 80
+    httpsPort: 443
+    targetPort: 8080
+    annotations: {}
+      # service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+  
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  healthChecks:
+    liveness:
+      path: /health/live
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      path: /health/ready
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
+    startup:
+      path: /health/startup
+      initialDelaySeconds: 0
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 30
+  
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/metrics"
+  
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+
+# Worker Service configuration
+worker:
+  enabled: true
+  replicaCount: 5
+  
+  image:
+    repository: hookverse/worker
+    tag: latest
+    pullPolicy: Always
+  
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+    limits:
+      cpu: 4000m
+      memory: 4Gi
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 50
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 85
+  
+  healthChecks:
+    liveness:
+      path: /health/live
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readiness:
+      path: /health/ready
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
+    startup:
+      path: /health/startup
+      initialDelaySeconds: 0
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 30
+  
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8082"
+    prometheus.io/path: "/metrics"
+  
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+  
+  config:
+    maxConcurrency: 100
+    retryAttempts: 5
+    circuitBreakerThreshold: 5
+    circuitBreakerDurationSeconds: 30
+
+# Database configuration
+database:
+  provider: PostgreSQL  # PostgreSQL, MySQL, SQLServer, SQLite
+  connectionString: ""  # Set via secret
+  maxRetryCount: 3
+  commandTimeout: 30
+
+# Message Bus configuration
+messageBus:
+  transport: RabbitMQ  # RabbitMQ, Kafka, SQS
+  
+  rabbitmq:
+    enabled: true
+    host: rabbitmq.hookverse.svc.cluster.local
+    port: 5672
+    virtualHost: /
+    username: guest
+    password: ""  # Set via secret
+  
+  kafka:
+    enabled: false
+    bootstrapServers: kafka.hookverse.svc.cluster.local:9092
+    username: ""
+    password: ""
+    saslMechanism: PLAIN
+  
+  sqs:
+    enabled: false
+    region: us-east-1
+    accessKeyId: ""  # Set via secret
+    secretAccessKey: ""  # Set via secret
+
+# OpenTelemetry configuration
+observability:
+  enabled: true
+  otelCollectorEndpoint: http://otel-collector.observability.svc.cluster.local:4317
+  serviceName: hookverse
+  serviceVersion: 1.0.0
+  
+  metrics:
+    enabled: true
+    port: 8082
+    path: /metrics
+  
+  tracing:
+    enabled: true
+    samplingRatio: 0.1  # Sample 10% of traces
+  
+  logging:
+    level: Information
+    jsonOutput: true
+    includeScopes: true
+
+# Security configuration
+security:
+  apiKeyHeader: X-API-Key
+  hmacAlgorithm: HmacSHA256
+  encryptionAlgorithm: AES256
+  
+  # Encryption keys (set via secret)
+  payloadEncryptionKey: ""
+  secretEncryptionKey: ""
+  hmacSigningKey: ""
+
+# Webhook delivery configuration
+webhook:
+  timeoutSeconds: 30
+  maxPayloadSize: 262144  # 256KB
+  maxHeaders: 50
+  userAgent: HookVerse/1.0
+  
+  retry:
+    strategy: exponential
+    maxAttempts: 5
+    initialIntervalSeconds: 60
+    maxIntervalSeconds: 3600
+    multiplier: 2.0
+
+# Schema validation configuration
+schemaValidation:
+  enabled: true
+  maxSizeBytes: 102400  # 100KB
+  cacheDurationMinutes: 60
+
+# Feature flags
+features:
+  schemaValidation: true
+  mockEndpoints: true
+  gdprCompliance: true
+  messageBusIntegration: true
+  dashboard: true
+
+# Cache configuration (Redis)
+cache:
+  enabled: false
+  redis:
+    host: redis.hookverse.svc.cluster.local
+    port: 6379
+    password: ""  # Set via secret
+    defaultExpirationMinutes: 30
+
+# GDPR configuration
+gdpr:
+  retentionDays: 90
+  exportMaxRecords: 100000
+  deleteBatchSize: 1000
+
+# Ingress configuration
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # nginx.ingress.kubernetes.io/rate-limit: "100"
+  hosts:
+    - host: api.hookverse.dev
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+    # - secretName: hookverse-tls
+    #   hosts:
+    #     - api.hookverse.dev
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  api:
+    minAvailable: 2
+  worker:
+    minAvailable: 3
+
+# Network Policy
+networkPolicy:
+  enabled: false
+  policyTypes:
+    - Ingress
+    - Egress
+
+# Service Monitor for Prometheus Operator
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  scrapeTimeout: 10s
+  labels: {}
+
+# Persistence (for logs if needed)
+persistence:
+  enabled: false
+  storageClass: standard
+  size: 10Gi
+  accessMode: ReadWriteOnce

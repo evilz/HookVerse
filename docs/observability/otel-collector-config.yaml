@@ -1,0 +1,321 @@
+# OpenTelemetry Collector Configuration for HookVerse
+# This configuration receives telemetry data from HookVerse services and exports it to various backends
+
+receivers:
+  # OTLP receiver for receiving telemetry from .NET applications
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - "http://*"
+            - "https://*"
+
+  # Prometheus receiver for scraping metrics
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'hookverse-api'
+          scrape_interval: 15s
+          kubernetes_sd_configs:
+            - role: pod
+              namespaces:
+                names:
+                  - hookverse
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_label_app]
+              action: keep
+              regex: hookverse-api
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+              action: keep
+              regex: true
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+              action: replace
+              target_label: __metrics_path__
+              regex: (.+)
+            - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+              action: replace
+              regex: ([^:]+)(?::\d+)?;(\d+)
+              replacement: $1:$2
+              target_label: __address__
+
+        - job_name: 'hookverse-worker'
+          scrape_interval: 15s
+          kubernetes_sd_configs:
+            - role: pod
+              namespaces:
+                names:
+                  - hookverse
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_label_app]
+              action: keep
+              regex: hookverse-worker
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+              action: keep
+              regex: true
+            - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+              action: replace
+              target_label: __metrics_path__
+              regex: (.+)
+            - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+              action: replace
+              regex: ([^:]+)(?::\d+)?;(\d+)
+              replacement: $1:$2
+              target_label: __address__
+
+processors:
+  # Batch processor to batch telemetry data before export
+  batch:
+    timeout: 10s
+    send_batch_size: 1000
+    send_batch_max_size: 1500
+
+  # Memory limiter to prevent OOM
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+    spike_limit_mib: 128
+
+  # Resource detection to add cloud/k8s metadata
+  resourcedetection:
+    detectors: [env, system, docker, kubernetes]
+    timeout: 5s
+    override: false
+
+  # Resource processor to add custom attributes
+  resource:
+    attributes:
+      - key: service.namespace
+        value: hookverse
+        action: upsert
+      - key: deployment.environment
+        from_attribute: ENVIRONMENT
+        action: insert
+      - key: service.version
+        from_attribute: APP_VERSION
+        action: insert
+
+  # Attribute processor to filter/transform span attributes
+  attributes:
+    actions:
+      # Remove sensitive data
+      - key: http.request.header.authorization
+        action: delete
+      - key: http.request.header.cookie
+        action: delete
+      - key: db.statement
+        action: hash  # Hash SQL statements to prevent exposing sensitive data
+      
+      # Normalize HTTP status codes
+      - key: http.status_code
+        from_attribute: http.response.status_code
+        action: upsert
+
+  # Span processor to filter/sample traces
+  probabilistic_sampler:
+    sampling_percentage: 100  # Sample 100% in production; adjust for high-traffic environments
+    hash_seed: 22
+
+  # Filter processor to drop unwanted telemetry
+  filter:
+    metrics:
+      exclude:
+        match_type: regexp
+        metric_names:
+          - ^process\.runtime\..*  # Exclude verbose runtime metrics
+    traces:
+      span:
+        - 'attributes["http.target"] == "/health"'  # Exclude health check spans
+        - 'attributes["http.target"] == "/metrics"'  # Exclude metrics endpoint spans
+
+  # Transform processor to rename/modify metrics
+  metricstransform:
+    transforms:
+      # Normalize metric names
+      - include: ^hookverse_(.+)$
+        match_type: regexp
+        action: update
+        new_name: hookverse.$${1}
+
+exporters:
+  # Prometheus exporter for metrics
+  prometheus:
+    endpoint: "0.0.0.0:8889"
+    namespace: hookverse
+    const_labels:
+      environment: production
+
+  # Prometheus Remote Write exporter (alternative to prometheus exporter)
+  prometheusremotewrite:
+    endpoint: "http://prometheus:9090/api/v1/write"
+    tls:
+      insecure: false
+    headers:
+      Authorization: "Bearer ${PROMETHEUS_API_KEY}"
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  # OTLP exporter for traces to Jaeger
+  otlp/jaeger:
+    endpoint: "jaeger-collector:4317"
+    tls:
+      insecure: true
+    compression: gzip
+    timeout: 30s
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+
+  # OTLP exporter for traces to Tempo
+  otlp/tempo:
+    endpoint: "tempo:4317"
+    tls:
+      insecure: true
+    compression: gzip
+
+  # Zipkin exporter (alternative trace backend)
+  zipkin:
+    endpoint: "http://zipkin:9411/api/v2/spans"
+    format: proto
+
+  # Logging exporter for debugging
+  logging:
+    loglevel: info
+    sampling_initial: 5
+    sampling_thereafter: 200
+
+  # OTLP exporter for logs
+  otlp/logs:
+    endpoint: "loki:4317"
+    tls:
+      insecure: true
+
+  # File exporter for local debugging
+  file:
+    path: /var/log/otel-collector.json
+    rotation:
+      max_megabytes: 100
+      max_days: 3
+      max_backups: 3
+
+  # Cloud vendor exporters (commented out - enable as needed)
+  
+  # AWS CloudWatch
+  # awscloudwatch:
+  #   region: us-east-1
+  #   namespace: HookVerse/Production
+  #   log_group_name: /aws/hookverse/logs
+  #   log_stream_name: otel-collector
+
+  # Azure Monitor
+  # azuremonitor:
+  #   instrumentation_key: ${AZURE_INSTRUMENTATION_KEY}
+  #   max_batch_size: 1024
+  #   max_batch_interval: 10s
+
+  # Google Cloud Monitoring
+  # googlecloud:
+  #   project: hookverse-production
+  #   metric:
+  #     prefix: custom.googleapis.com/hookverse
+  #   trace:
+  #     sampling_rate: 0.1
+
+  # Datadog
+  # datadog:
+  #   api:
+  #     key: ${DD_API_KEY}
+  #     site: datadoghq.com
+  #   hostname: hookverse-otel-collector
+
+extensions:
+  # Health check extension
+  health_check:
+    endpoint: 0.0.0.0:13133
+    path: /health
+
+  # Performance profiler (pprof)
+  pprof:
+    endpoint: 0.0.0.0:1777
+
+  # zPages for debugging
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+  # Kubernetes service discovery
+  k8s_observer:
+    auth_type: serviceAccount
+    node: ${K8S_NODE_NAME}
+    observe_pods: true
+    observe_nodes: false
+
+service:
+  extensions: [health_check, pprof, zpages]
+  
+  pipelines:
+    # Traces pipeline
+    traces:
+      receivers: [otlp]
+      processors: 
+        - memory_limiter
+        - resourcedetection
+        - resource
+        - attributes
+        - probabilistic_sampler
+        - filter
+        - batch
+      exporters: [otlp/jaeger, otlp/tempo, logging]
+
+    # Metrics pipeline
+    metrics:
+      receivers: [otlp, prometheus]
+      processors:
+        - memory_limiter
+        - resourcedetection
+        - resource
+        - filter
+        - metricstransform
+        - batch
+      exporters: [prometheus, prometheusremotewrite, logging]
+
+    # Logs pipeline
+    logs:
+      receivers: [otlp]
+      processors:
+        - memory_limiter
+        - resourcedetection
+        - resource
+        - attributes
+        - batch
+      exporters: [otlp/logs, logging]
+
+  # Telemetry configuration for the collector itself
+  telemetry:
+    logs:
+      level: info
+      encoding: json
+      output_paths:
+        - stdout
+        - /var/log/otel-collector-internal.log
+    
+    metrics:
+      level: detailed
+      address: 0.0.0.0:8888
+      readers:
+        - periodic:
+            interval: 30s
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888
+
+    # Resource attributes for collector's own telemetry
+    resource:
+      service.name: otel-collector
+      service.version: 0.89.0
+      deployment.environment: production

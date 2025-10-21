@@ -1,0 +1,25 @@
+@namespace HookVerse.Dashboard.Components
+@using HookVerse.Dashboard.Models
+
+<div class="delivery-attempt-card card">
+    <div class="card-body">
+        <div><strong>Attempt:</strong> @Attempt.AttemptNumber</div>
+        <div><strong>Status:</strong> @Attempt.Status</div>
+        <div><strong>Duration (ms):</strong> @Attempt.ResponseTimeMs</div>
+        <div><strong>Status Code:</strong> @Attempt.ResponseStatusCode</div>
+        <details>
+            <summary>Response</summary>
+            <pre>@Attempt.ResponseBody</pre>
+        </details>
+        @if (!string.IsNullOrEmpty(Attempt.ErrorMessage))
+        {
+            <div class="text-danger">
+                <strong>Error:</strong> @Attempt.ErrorMessage
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public DeliveryAttemptInfo Attempt { get; set; } = new();
+}

@@ -1,0 +1,533 @@
+@page "/mock-endpoints"
+@using HookVerse.Dashboard.Models
+@using HookVerse.Dashboard.Services
+@inject IWebhookApiClient ApiClient
+@inject ILogger<MockEndpoints> Logger
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>Mock Endpoints - HookVerse</PageTitle>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Mock Endpoints</h1>
+        <button class="btn btn-primary" @onclick="ShowCreateModal">
+            <i class="bi bi-plus-circle me-2"></i>Create Mock Endpoint
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @errorMessage
+            <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @successMessage
+            <button type="button" class="btn-close" @onclick="() => successMessage = null"></button>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Loading mock endpoints...</p>
+        </div>
+    }
+    else if (mockEndpoints.Count == 0)
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-box text-muted" style="font-size: 3rem;"></i>
+                <h5 class="mt-3">No Mock Endpoints Yet</h5>
+                <p class="text-muted">Create a mock endpoint to test your webhook integrations.</p>
+                <button class="btn btn-primary" @onclick="ShowCreateModal">
+                    <i class="bi bi-plus-circle me-2"></i>Create Your First Mock Endpoint
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var endpoint in mockEndpoints)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div>
+                                    <h5 class="card-title mb-1">@endpoint.Name</h5>
+                                    @if (endpoint.IsActive)
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    }
+                                </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-link text-muted" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><button class="dropdown-item" @onclick="() => ShowEditModal(endpoint)">
+                                            <i class="bi bi-pencil me-2"></i>Edit
+                                        </button></li>
+                                        <li><button class="dropdown-item" @onclick="() => CopyUrl(endpoint.Url)">
+                                            <i class="bi bi-clipboard me-2"></i>Copy URL
+                                        </button></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><button class="dropdown-item text-danger" @onclick="() => ShowDeleteConfirm(endpoint)">
+                                            <i class="bi bi-trash me-2"></i>Delete
+                                        </button></li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(endpoint.Description))
+                            {
+                                <p class="card-text text-muted small">@endpoint.Description</p>
+                            }
+
+                            <div class="bg-light p-2 rounded mb-3" style="font-family: monospace; font-size: 0.85rem; word-break: break-all;">
+                                @endpoint.Url
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Status Code</small>
+                                    <span class="badge bg-@GetStatusBadgeColor(endpoint.ResponseStatus)">@endpoint.ResponseStatus</span>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Delay</small>
+                                    <span>@endpoint.ResponseDelayMs ms</span>
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Requests</small>
+                                    <strong>@endpoint.RequestCount</strong>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Last Request</small>
+                                    <span>@(endpoint.LastRequestAt?.ToString("g") ?? "Never")</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <button class="btn btn-sm btn-outline-primary w-100" @onclick="() => ShowTriggerModal(endpoint)">
+                                <i class="bi bi-lightning me-2"></i>Test Endpoint
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@* Create/Edit Modal *@
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(isEditMode ? "Edit Mock Endpoint" : "Create Mock Endpoint")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Name *</label>
+                        <input type="text" class="form-control" @bind="currentEndpoint.Name" placeholder="e.g., Test Success Response" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" @bind="currentEndpoint.Description" rows="2" placeholder="Optional description"></textarea>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Response Status Code</label>
+                            <input type="number" class="form-control" @bind="currentEndpoint.ResponseStatus" min="100" max="599" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Response Delay (ms)</label>
+                            <input type="number" class="form-control" @bind="currentEndpoint.ResponseDelayMs" min="0" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Content Type</label>
+                        <input type="text" class="form-control" @bind="currentEndpoint.ResponseContentType" placeholder="application/json" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Response Body</label>
+                        <textarea class="form-control font-monospace" @bind="currentEndpoint.ResponseBody" rows="6" 
+                                  placeholder='{"success": true, "message": "Webhook received"}'></textarea>
+                    </div>
+
+                    @if (isEditMode)
+                    {
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="isActive" @bind="currentEndpoint.IsActive" />
+                            <label class="form-check-label" for="isActive">Active</label>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveEndpoint" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        @(isEditMode ? "Update" : "Create")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Trigger Test Modal *@
+@if (showTriggerModal && selectedEndpoint != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Test @selectedEndpoint.Name</h5>
+                    <button type="button" class="btn-close" @onclick="() => showTriggerModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Event Type</label>
+                        <input type="text" class="form-control" @bind="triggerEventType" placeholder="test.event" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Payload (JSON)</label>
+                        <textarea class="form-control font-monospace" @bind="triggerPayload" rows="6" 
+                                  placeholder='{"test": true, "timestamp": "2024-01-01T00:00:00Z"}'></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => showTriggerModal = false">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="TriggerTest" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        <i class="bi bi-lightning me-2"></i>Trigger
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* Delete Confirmation Modal *@
+@if (showDeleteModal && selectedEndpoint != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete Mock Endpoint</h5>
+                    <button type="button" class="btn-close" @onclick="() => showDeleteModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete <strong>@selectedEndpoint.Name</strong>?</p>
+                    <p class="text-danger">This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => showDeleteModal = false">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="DeleteEndpoint" disabled="@isSaving">
+                        @if (isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-2"></span>
+                        }
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<MockEndpointResponse> mockEndpoints = new();
+    private MockEndpointForm currentEndpoint = new();
+    private MockEndpointResponse? selectedEndpoint;
+    
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private bool showModal = false;
+    private bool showTriggerModal = false;
+    private bool showDeleteModal = false;
+    private bool isEditMode = false;
+    
+    private string? errorMessage;
+    private string? successMessage;
+    
+    private string triggerEventType = "test.event";
+    private string triggerPayload = @"{""test"": true, ""timestamp"": ""2024-01-01T00:00:00Z""}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadMockEndpoints();
+    }
+
+    private async Task LoadMockEndpoints()
+    {
+        try
+        {
+            isLoading = true;
+            mockEndpoints = await ApiClient.GetMockEndpointsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading mock endpoints");
+            errorMessage = "Failed to load mock endpoints. Please try again.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        currentEndpoint = new MockEndpointForm
+        {
+            ResponseStatus = 200,
+            ResponseContentType = "application/json",
+            ResponseDelayMs = 0,
+            IsActive = true
+        };
+        isEditMode = false;
+        showModal = true;
+        errorMessage = null;
+    }
+
+    private void ShowEditModal(MockEndpointResponse endpoint)
+    {
+        currentEndpoint = new MockEndpointForm
+        {
+            Id = endpoint.Id,
+            Name = endpoint.Name,
+            Description = endpoint.Description,
+            ResponseStatus = endpoint.ResponseStatus,
+            ResponseBody = endpoint.ResponseBody,
+            ResponseContentType = endpoint.ResponseContentType,
+            ResponseDelayMs = endpoint.ResponseDelayMs,
+            IsActive = endpoint.IsActive
+        };
+        isEditMode = true;
+        showModal = true;
+        errorMessage = null;
+    }
+
+    private void ShowTriggerModal(MockEndpointResponse endpoint)
+    {
+        selectedEndpoint = endpoint;
+        triggerEventType = "test.event";
+        triggerPayload = @"{""test"": true, ""timestamp"": ""2024-01-01T00:00:00Z""}";
+        showTriggerModal = true;
+        errorMessage = null;
+    }
+
+    private void ShowDeleteConfirm(MockEndpointResponse endpoint)
+    {
+        selectedEndpoint = endpoint;
+        showDeleteModal = true;
+        errorMessage = null;
+    }
+
+    private async Task SaveEndpoint()
+    {
+        try
+        {
+            isSaving = true;
+            errorMessage = null;
+
+            if (string.IsNullOrWhiteSpace(currentEndpoint.Name))
+            {
+                errorMessage = "Name is required";
+                return;
+            }
+
+            if (isEditMode)
+            {
+                var updateRequest = new UpdateMockEndpointRequest
+                {
+                    Name = currentEndpoint.Name,
+                    Description = currentEndpoint.Description,
+                    ResponseStatus = currentEndpoint.ResponseStatus,
+                    ResponseBody = currentEndpoint.ResponseBody,
+                    ResponseContentType = currentEndpoint.ResponseContentType,
+                    ResponseDelayMs = currentEndpoint.ResponseDelayMs,
+                    IsActive = currentEndpoint.IsActive
+                };
+
+                await ApiClient.UpdateMockEndpointAsync(currentEndpoint.Id, updateRequest);
+                successMessage = "Mock endpoint updated successfully!";
+            }
+            else
+            {
+                var createRequest = new CreateMockEndpointRequest
+                {
+                    Name = currentEndpoint.Name,
+                    Description = currentEndpoint.Description,
+                    ResponseStatus = currentEndpoint.ResponseStatus,
+                    ResponseBody = currentEndpoint.ResponseBody,
+                    ResponseContentType = currentEndpoint.ResponseContentType,
+                    ResponseDelayMs = currentEndpoint.ResponseDelayMs
+                };
+
+                await ApiClient.CreateMockEndpointAsync(createRequest);
+                successMessage = "Mock endpoint created successfully!";
+            }
+
+            CloseModal();
+            await LoadMockEndpoints();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error saving mock endpoint");
+            errorMessage = $"Failed to save mock endpoint: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task DeleteEndpoint()
+    {
+        if (selectedEndpoint == null) return;
+
+        try
+        {
+            isSaving = true;
+            errorMessage = null;
+
+            var success = await ApiClient.DeleteMockEndpointAsync(selectedEndpoint.Id);
+            
+            if (success)
+            {
+                successMessage = $"Mock endpoint '{selectedEndpoint.Name}' deleted successfully!";
+                showDeleteModal = false;
+                await LoadMockEndpoints();
+            }
+            else
+            {
+                errorMessage = "Failed to delete mock endpoint.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting mock endpoint");
+            errorMessage = $"Failed to delete mock endpoint: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task TriggerTest()
+    {
+        if (selectedEndpoint == null) return;
+
+        try
+        {
+            isSaving = true;
+            errorMessage = null;
+
+            var request = new TriggerMockWebhookRequest
+            {
+                EventType = triggerEventType,
+                Payload = triggerPayload
+            };
+
+            var result = await ApiClient.TriggerMockWebhookAsync(selectedEndpoint.Id, request);
+            
+            if (result != null)
+            {
+                successMessage = $"Test webhook triggered successfully! {result.Message}";
+                showTriggerModal = false;
+            }
+            else
+            {
+                errorMessage = "Failed to trigger test webhook.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error triggering test webhook");
+            errorMessage = $"Failed to trigger test: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task CopyUrl(string url)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", url);
+            successMessage = "URL copied to clipboard!";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error copying URL");
+            errorMessage = "Failed to copy URL to clipboard.";
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+        currentEndpoint = new();
+    }
+
+    private string GetStatusBadgeColor(int statusCode)
+    {
+        return statusCode switch
+        {
+            >= 200 and < 300 => "success",
+            >= 300 and < 400 => "info",
+            >= 400 and < 500 => "warning",
+            >= 500 => "danger",
+            _ => "secondary"
+        };
+    }
+
+    private class MockEndpointForm
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+        public int ResponseStatus { get; set; } = 200;
+        public string? ResponseBody { get; set; }
+        public string ResponseContentType { get; set; } = "application/json";
+        public int ResponseDelayMs { get; set; } = 0;
+        public bool IsActive { get; set; } = true;
+    }
+}

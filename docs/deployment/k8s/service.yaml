@@ -1,0 +1,189 @@
+---
+# HookVerse Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hookverse
+  labels:
+    name: hookverse
+    environment: production
+---
+# HookVerse API Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: hookverse-api
+  namespace: hookverse
+  labels:
+    app: hookverse
+    component: api
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "http"
+spec:
+  type: LoadBalancer
+  selector:
+    app: hookverse
+    component: api
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: http
+    protocol: TCP
+  sessionAffinity: None
+  externalTrafficPolicy: Local
+---
+# HookVerse API Internal Service (for internal communication)
+apiVersion: v1
+kind: Service
+metadata:
+  name: hookverse-api-internal
+  namespace: hookverse
+  labels:
+    app: hookverse
+    component: api
+spec:
+  type: ClusterIP
+  selector:
+    app: hookverse
+    component: api
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  - name: health
+    port: 8081
+    targetPort: health
+    protocol: TCP
+  sessionAffinity: None
+---
+# HookVerse Worker Service (for metrics collection)
+apiVersion: v1
+kind: Service
+metadata:
+  name: hookverse-worker
+  namespace: hookverse
+  labels:
+    app: hookverse
+    component: worker
+spec:
+  type: ClusterIP
+  clusterIP: None  # Headless service for direct pod access
+  selector:
+    app: hookverse
+    component: worker
+  ports:
+  - name: metrics
+    port: 8082
+    targetPort: metrics
+    protocol: TCP
+  - name: health
+    port: 8083
+    targetPort: health
+    protocol: TCP
+  sessionAffinity: None
+---
+# HookVerse API Headless Service (for StatefulSet scenarios)
+apiVersion: v1
+kind: Service
+metadata:
+  name: hookverse-api-headless
+  namespace: hookverse
+  labels:
+    app: hookverse
+    component: api
+spec:
+  type: ClusterIP
+  clusterIP: None  # Headless service
+  selector:
+    app: hookverse
+    component: api
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  publishNotReadyAddresses: true
+---
+# Service Account for API
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hookverse-api
+  namespace: hookverse
+  labels:
+    app: hookverse
+    component: api
+---
+# Service Account for Worker
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hookverse-worker
+  namespace: hookverse
+  labels:
+    app: hookverse
+    component: worker
+---
+# Role for API Service Account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hookverse-api-role
+  namespace: hookverse
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+# RoleBinding for API Service Account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hookverse-api-rolebinding
+  namespace: hookverse
+subjects:
+- kind: ServiceAccount
+  name: hookverse-api
+  namespace: hookverse
+roleRef:
+  kind: Role
+  name: hookverse-api-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Role for Worker Service Account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hookverse-worker-role
+  namespace: hookverse
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+# RoleBinding for Worker Service Account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hookverse-worker-rolebinding
+  namespace: hookverse
+subjects:
+- kind: ServiceAccount
+  name: hookverse-worker
+  namespace: hookverse
+roleRef:
+  kind: Role
+  name: hookverse-worker-role
+  apiGroup: rbac.authorization.k8s.io

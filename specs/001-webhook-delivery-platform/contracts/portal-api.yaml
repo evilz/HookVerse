@@ -1,0 +1,186 @@
+openapi: 3.0.3
+info:
+  title: HookVerse Portal API
+  description: API for subscriber portal (analytics, GDPR, mock endpoints)
+  version: 1.0.0
+
+servers:
+  - url: https://api.hookverse.io/v1
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /analytics/dashboard:
+    get:
+      summary: Get dashboard analytics
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Dashboard analytics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Analytics'
+
+  /gdpr/export:
+    post:
+      summary: Request data export
+      responses:
+        '202':
+          description: Export request accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  requestId:
+                    type: string
+                    format: uuid
+
+  /gdpr/delete:
+    post:
+      summary: Request data deletion
+      responses:
+        '202':
+          description: Deletion request accepted
+
+  /mock-endpoints:
+    get:
+      summary: List mock endpoints
+      responses:
+        '200':
+          description: List of mock endpoints
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MockEndpoint'
+
+    post:
+      summary: Create mock endpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMockEndpointRequest'
+      responses:
+        '201':
+          description: Mock endpoint created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MockEndpoint'
+
+  /mock-endpoints/{mockId}:
+    delete:
+      summary: Delete mock endpoint
+      parameters:
+        - name: mockId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Mock endpoint deleted
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Analytics:
+      type: object
+      properties:
+        totalWebhooks:
+          type: integer
+        deliverySuccessRate:
+          type: number
+          format: float
+        averageLatencyMs:
+          type: integer
+        latencyPercentiles:
+          type: object
+          properties:
+            p50:
+              type: integer
+            p95:
+              type: integer
+            p99:
+              type: integer
+        topEventTypes:
+          type: array
+          items:
+            type: object
+            properties:
+              eventType:
+                type: string
+              count:
+                type: integer
+        failureReasons:
+          type: object
+          additionalProperties:
+            type: integer
+
+    MockEndpoint:
+      type: object
+      required:
+        - id
+        - url
+        - name
+      properties:
+        id:
+          type: string
+          format: uuid
+        url:
+          type: string
+        name:
+          type: string
+        responseStatus:
+          type: integer
+          default: 200
+        responseBody:
+          type: string
+        responseDelay:
+          type: integer
+          description: Delay in milliseconds
+        isActive:
+          type: boolean
+        requestCount:
+          type: integer
+        expiresAt:
+          type: string
+          format: date-time
+
+    CreateMockEndpointRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        responseStatus:
+          type: integer
+          default: 200
+        responseBody:
+          type: string
+        responseDelay:
+          type: integer
+          default: 0

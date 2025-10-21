@@ -1,0 +1,65 @@
+@inject HookVerse.Dashboard.Services.IWebhookApiClient ApiClient
+
+<div class="analytics-dashboard">
+    @if (isLoading)
+    {
+        <p>Loading analytics...</p>
+    }
+    else if (error != null)
+    {
+        <p class="text-danger">@error</p>
+    }
+    else if (analytics != null)
+    {
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card p-3">
+                    <h5>Total Webhooks</h5>
+                    <h2>@analytics.TotalWebhooks</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3">
+                    <h5>Success Rate</h5>
+                    <h2>@analytics.SuccessRate.ToString("0.0")%</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card p-3">
+                    <h5>Avg Response (ms)</h5>
+                    <h2>@analytics.AverageResponseTimeMs.ToString("0")</h2>
+                </div>
+            </div>
+        </div>
+
+        <h5 class="mt-4">Top Event Types</h5>
+        <ul>
+            @foreach (var t in analytics.TopEventTypes)
+            {
+                <li>@t.EventTypeName — @t.Count (@t.SuccessRate.ToString("0.0")%)</li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    private bool isLoading = true;
+    private string? error;
+    private HookVerse.Dashboard.Models.DashboardAnalytics? analytics;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            analytics = await ApiClient.GetDashboardAnalyticsAsync();
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
