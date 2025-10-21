@@ -348,38 +348,38 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### Kubernetes Publish Profile
 
-- [ ] T112 [US4] Create PublishProfiles directory in src/HookVerse.AppHost/Properties/PublishProfiles/
-- [ ] T113 [US4] Create kubernetes.pubxml in src/HookVerse.AppHost/Properties/PublishProfiles/ for K8s target
-- [ ] T114 [US4] Configure output path to aspire/manifests/kubernetes/ in kubernetes.pubxml
+- [X] T112 [US4] Create PublishProfiles directory in src/HookVerse.AppHost/Properties/PublishProfiles/
+- [X] T113 [US4] Create kubernetes.pubxml in src/HookVerse.AppHost/Properties/PublishProfiles/ for K8s target
+- [X] T114 [US4] Configure output path to aspire/manifests/kubernetes/ in kubernetes.pubxml
 
 #### Azure Publish Profile
 
-- [ ] T115 [P] [US4] Create azure.pubxml in src/HookVerse.AppHost/Properties/PublishProfiles/ for Azure target
-- [ ] T116 [P] [US4] Configure output path to aspire/manifests/azure/ in azure.pubxml
-- [ ] T117 [P] [US4] Add NuGet package Aspire.Hosting.Azure.Sql to HookVerse.AppHost
-- [ ] T118 [P] [US4] Add NuGet package Aspire.Hosting.Azure.ServiceBus to HookVerse.AppHost
-- [ ] T119 [P] [US4] Add NuGet package Aspire.Hosting.Azure.Redis to HookVerse.AppHost
+- [X] T115 [P] [US4] Create azure.pubxml in src/HookVerse.AppHost/Properties/PublishProfiles/ for Azure target
+- [X] T116 [P] [US4] Configure output path to aspire/manifests/azure/ in azure.pubxml
+- [X] T117 [P] [US4] Add NuGet package Aspire.Hosting.Azure.Sql to HookVerse.AppHost
+- [X] T118 [P] [US4] Add NuGet package Aspire.Hosting.Azure.ServiceBus to HookVerse.AppHost
+- [X] T119 [P] [US4] Add NuGet package Aspire.Hosting.Azure.Redis to HookVerse.AppHost
 
 #### Azure Resource Configuration
 
-- [ ] T120 [US4] Define Azure SQL Server resource in AppHost/Program.cs using AddAzureSqlServer("sql")
-- [ ] T121 [US4] Add hookverse database to Azure SQL Server using AddDatabase("hookverse-db")
-- [ ] T122 [US4] Define Azure Service Bus resource in AppHost/Program.cs using AddAzureServiceBus("servicebus")
-- [ ] T123 [US4] Define Azure Redis Cache resource in AppHost/Program.cs using AddAzureRedis("redis-cache")
-- [ ] T124 [US4] Configure services to reference Azure resources when PublishProfile=azure
-- [ ] T125 [US4] Add PublishAsAzureContainerApp() extension to Api project for Azure Container Apps deployment
+- [X] T120 [US4] Define Azure SQL Server resource in AppHost/Program.cs using AddAzureSqlServer("sql")
+- [X] T121 [US4] Add hookverse database to Azure SQL Server using AddDatabase("hookverse-db")
+- [X] T122 [US4] Define Azure Service Bus resource in AppHost/Program.cs using AddAzureServiceBus("servicebus")
+- [X] T123 [US4] Define Azure Redis Cache resource in AppHost/Program.cs using AddAzureRedis("redis-cache")
+- [X] T124 [US4] Configure services to reference Azure resources when PublishProfile=azure
+- [X] T125 [US4] Add PublishAsAzureContainerApp() extension to Api project for Azure Container Apps deployment
 
 #### Manifest Generation Scripts
 
-- [ ] T126 [US4] Create generate-k8s-manifests.ps1 in aspire/templates/ for Kubernetes manifest generation
-- [ ] T127 [US4] Create generate-azure-manifests.ps1 in aspire/templates/ for Azure Bicep generation
-- [ ] T128 [US4] Add manifest validation step using kubectl --dry-run=client in generate-k8s-manifests.ps1
-- [ ] T129 [US4] Add Bicep validation step using az bicep build in generate-azure-manifests.ps1
+- [X] T126 [US4] Create generate-k8s-manifests.ps1 in aspire/templates/ for Kubernetes manifest generation
+- [X] T127 [US4] Create generate-azure-manifests.ps1 in aspire/templates/ for Azure Bicep generation
+- [X] T128 [US4] Add manifest validation step using kubectl --dry-run=client in generate-k8s-manifests.ps1
+- [X] T129 [US4] Add Bicep validation step using az bicep build in generate-azure-manifests.ps1
 
 #### Parameters File
 
-- [ ] T130 [US4] Create parameters.json template in aspire/manifests/azure/ with environment-specific values
-- [ ] T131 [US4] Document parameter customization in aspire/manifests/azure/README.md
+- [X] T130 [US4] Create parameters.json template in aspire/manifests/azure/ with environment-specific values
+- [X] T131 [US4] Document parameter customization in aspire/manifests/azure/README.md
 
 #### Schema Validation Tests
 
