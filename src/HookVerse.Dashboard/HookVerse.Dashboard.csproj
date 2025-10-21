@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HookVerse.Shared\HookVerse.Shared.csproj" />
+    <ProjectReference Include="..\HookVerse.ServiceDefaults\HookVerse.ServiceDefaults.csproj" />
   </ItemGroup>
 
   <ItemGroup>

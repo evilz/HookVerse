@@ -24,6 +24,7 @@
     <ProjectReference Include="..\HookVerse.Core\HookVerse.Core.csproj" />
     <ProjectReference Include="..\HookVerse.Infrastructure\HookVerse.Infrastructure.csproj" />
     <ProjectReference Include="..\HookVerse.Shared\HookVerse.Shared.csproj" />
+    <ProjectReference Include="..\HookVerse.ServiceDefaults\HookVerse.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>

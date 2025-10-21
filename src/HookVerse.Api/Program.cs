@@ -27,6 +27,9 @@ return;
 // Configure services (used by both main and tests)
 static void ConfigureServices(WebApplicationBuilder builder)
 {
+    // Add Aspire service defaults (service discovery, OpenTelemetry, health checks)
+    builder.AddServiceDefaults();
+
     // Configure Serilog logging
     builder.AddSerilogLogging();
 
@@ -92,6 +95,11 @@ static void ConfigurePipeline(WebApplication app)
     app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
 
     app.MapControllers();
+    
+    // Map Aspire default endpoints (/health/live, /health/ready)
+    app.MapDefaultEndpoints();
+    
+    // Keep existing health check endpoint for backward compatibility
     app.MapHealthChecks("/health");
 }
 

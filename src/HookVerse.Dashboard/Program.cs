@@ -5,6 +5,9 @@ using HookVerse.Dashboard.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add Aspire service defaults (service discovery, OpenTelemetry, health checks)
+builder.AddServiceDefaults();
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -44,5 +47,8 @@ app.MapRazorComponents<App>()
 
 // Map SignalR hub
 app.MapHub<WebhookHub>("/webhookhub");
+
+// Map Aspire default endpoints (/health/live, /health/ready)
+app.MapDefaultEndpoints();
 
 app.Run();

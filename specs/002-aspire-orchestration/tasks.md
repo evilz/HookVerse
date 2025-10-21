@@ -60,27 +60,27 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 ### Tasks
 
-- [ ] T001 Create HookVerse.AppHost project using Aspire template in src/HookVerse.AppHost/
-- [ ] T002 Create HookVerse.ServiceDefaults class library in src/HookVerse.ServiceDefaults/
-- [ ] T003 Add HookVerse.AppHost to HookVerse.sln
-- [ ] T004 Add HookVerse.ServiceDefaults to HookVerse.sln
-- [ ] T005 Add NuGet package Aspire.Hosting to HookVerse.AppHost
-- [ ] T006 Add NuGet package Aspire.Hosting.PostgreSQL to HookVerse.AppHost
-- [ ] T007 Add NuGet package Aspire.Hosting.RabbitMQ to HookVerse.AppHost
-- [ ] T008 Add NuGet package Aspire.Hosting.Redis to HookVerse.AppHost
-- [ ] T009 Add NuGet package Microsoft.Extensions.ServiceDiscovery to HookVerse.ServiceDefaults
-- [ ] T010 Add NuGet package OpenTelemetry.Extensions.Hosting to HookVerse.ServiceDefaults
-- [ ] T011 Add NuGet package OpenTelemetry.Instrumentation.AspNetCore to HookVerse.ServiceDefaults
-- [ ] T012 Add NuGet package OpenTelemetry.Instrumentation.Http to HookVerse.ServiceDefaults
-- [ ] T013 Add NuGet package OpenTelemetry.Exporter.OpenTelemetryProtocol to HookVerse.ServiceDefaults
-- [ ] T014 Add NuGet package AspNetCore.HealthChecks.Npgsql to HookVerse.ServiceDefaults
-- [ ] T015 Add NuGet package AspNetCore.HealthChecks.RabbitMQ to HookVerse.ServiceDefaults
-- [ ] T016 Add NuGet package AspNetCore.HealthChecks.Redis to HookVerse.ServiceDefaults
-- [ ] T017 Create aspire/manifests/kubernetes/ directory structure
-- [ ] T018 Create aspire/manifests/azure/ directory structure
-- [ ] T019 Create aspire/templates/ directory for manifest generation scripts
-- [ ] T020 Create tests/HookVerse.AppHost.Tests/ project with xUnit
-- [ ] T021 Add NuGet package Aspire.Hosting.Testing to HookVerse.AppHost.Tests
+- [X] T001 Create HookVerse.AppHost project using Aspire template in src/HookVerse.AppHost/
+- [X] T002 Create HookVerse.ServiceDefaults class library in src/HookVerse.ServiceDefaults/
+- [X] T003 Add HookVerse.AppHost to HookVerse.sln
+- [X] T004 Add HookVerse.ServiceDefaults to HookVerse.sln
+- [X] T005 Add NuGet package Aspire.Hosting to HookVerse.AppHost
+- [X] T006 Add NuGet package Aspire.Hosting.PostgreSQL to HookVerse.AppHost
+- [X] T007 Add NuGet package Aspire.Hosting.RabbitMQ to HookVerse.AppHost
+- [X] T008 Add NuGet package Aspire.Hosting.Redis to HookVerse.AppHost
+- [X] T009 Add NuGet package Microsoft.Extensions.ServiceDiscovery to HookVerse.ServiceDefaults
+- [X] T010 Add NuGet package OpenTelemetry.Extensions.Hosting to HookVerse.ServiceDefaults
+- [X] T011 Add NuGet package OpenTelemetry.Instrumentation.AspNetCore to HookVerse.ServiceDefaults
+- [X] T012 Add NuGet package OpenTelemetry.Instrumentation.Http to HookVerse.ServiceDefaults
+- [X] T013 Add NuGet package OpenTelemetry.Exporter.OpenTelemetryProtocol to HookVerse.ServiceDefaults
+- [X] T014 Add NuGet package AspNetCore.HealthChecks.Npgsql to HookVerse.ServiceDefaults
+- [X] T015 Add NuGet package AspNetCore.HealthChecks.RabbitMQ to HookVerse.ServiceDefaults
+- [X] T016 Add NuGet package AspNetCore.HealthChecks.Redis to HookVerse.ServiceDefaults
+- [X] T017 Create aspire/manifests/kubernetes/ directory structure
+- [X] T018 Create aspire/manifests/azure/ directory structure
+- [X] T019 Create aspire/templates/ directory for manifest generation scripts
+- [X] T020 Create tests/HookVerse.AppHost.Tests/ project with xUnit
+- [X] T021 Add NuGet package Aspire.Hosting.Testing to HookVerse.AppHost.Tests
 
 **Completion Criteria**:
 - ✅ Two new projects created and compile successfully
@@ -103,17 +103,17 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 ### Tasks
 
-- [ ] T022 Implement AddServiceDefaults extension method in src/HookVerse.ServiceDefaults/Extensions.cs
-- [ ] T023 Configure service discovery in AddServiceDefaults using AddServiceDiscovery()
-- [ ] T024 Configure HttpClient defaults with service discovery and resilience handler
-- [ ] T025 Configure OpenTelemetry tracing instrumentation (AspNetCore, HttpClient, EF Core)
-- [ ] T026 Configure OpenTelemetry metrics instrumentation (AspNetCore, HttpClient, Runtime)
-- [ ] T027 Implement conditional OTLP exporter based on OTEL_EXPORTER_OTLP_ENDPOINT environment variable
-- [ ] T028 Implement AddDefaultHealthChecks extension method in src/HookVerse.ServiceDefaults/Extensions.cs
-- [ ] T029 Add PostgreSQL health check in AddDefaultHealthChecks
-- [ ] T030 Add RabbitMQ health check in AddDefaultHealthChecks
-- [ ] T031 Add Redis health check in AddDefaultHealthChecks
-- [ ] T032 Create appsettings.json in src/HookVerse.ServiceDefaults/ with default OpenTelemetry configuration
+- [X] T022 Implement AddServiceDefaults extension method in src/HookVerse.ServiceDefaults/Extensions.cs
+- [X] T023 Configure service discovery in AddServiceDefaults using AddServiceDiscovery()
+- [X] T024 Configure HttpClient defaults with service discovery and resilience handler
+- [X] T025 Configure OpenTelemetry tracing instrumentation (AspNetCore, HttpClient, EF Core)
+- [X] T026 Configure OpenTelemetry metrics instrumentation (AspNetCore, HttpClient, Runtime)
+- [X] T027 Implement conditional OTLP exporter based on OTEL_EXPORTER_OTLP_ENDPOINT environment variable
+- [X] T028 Implement AddDefaultHealthChecks extension method in src/HookVerse.ServiceDefaults/Extensions.cs
+- [X] T029 Add PostgreSQL health check in AddDefaultHealthChecks
+- [X] T030 Add RabbitMQ health check in AddDefaultHealthChecks
+- [X] T031 Add Redis health check in AddDefaultHealthChecks
+- [X] T032 Create appsettings.json in src/HookVerse.ServiceDefaults/ with default OpenTelemetry configuration
 
 **Completion Criteria**:
 - ✅ ServiceDefaults project compiles without errors
@@ -141,62 +141,62 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### Container Resource Configuration
 
-- [ ] T033 [P] [US1] Define PostgreSQL container resource in src/HookVerse.AppHost/Program.cs using AddPostgres()
-- [ ] T034 [P] [US1] Add PgAdmin management UI to PostgreSQL resource using WithPgAdmin()
-- [ ] T035 [P] [US1] Define RabbitMQ container resource in src/HookVerse.AppHost/Program.cs using AddRabbitMQ()
-- [ ] T036 [P] [US1] Add RabbitMQ Management Plugin using WithManagementPlugin()
-- [ ] T037 [P] [US1] Define Redis container resource in src/HookVerse.AppHost/Program.cs using AddRedis()
+- [X] T033 [P] [US1] Define PostgreSQL container resource in src/HookVerse.AppHost/Program.cs using AddPostgres()
+- [X] T034 [P] [US1] Add PgAdmin management UI to PostgreSQL resource using WithPgAdmin()
+- [X] T035 [P] [US1] Define RabbitMQ container resource in src/HookVerse.AppHost/Program.cs using AddRabbitMQ()
+- [X] T036 [P] [US1] Add RabbitMQ Management Plugin using WithManagementPlugin()
+- [X] T037 [P] [US1] Define Redis container resource in src/HookVerse.AppHost/Program.cs using AddRedis()
 
 #### Service Project Registration
 
-- [ ] T038 [US1] Add project reference to HookVerse.Api in src/HookVerse.AppHost/HookVerse.AppHost.csproj
-- [ ] T039 [US1] Add project reference to HookVerse.Worker in src/HookVerse.AppHost/HookVerse.AppHost.csproj
-- [ ] T040 [US1] Add project reference to HookVerse.Dashboard in src/HookVerse.AppHost/HookVerse.AppHost.csproj
-- [ ] T041 [US1] Register HookVerse.Api project in AppHost using AddProject<Projects.HookVerse_Api>("api")
-- [ ] T042 [US1] Register HookVerse.Worker project in AppHost using AddProject<Projects.HookVerse_Worker>("worker")
-- [ ] T043 [US1] Register HookVerse.Dashboard project in AppHost using AddProject<Projects.HookVerse_Dashboard>("dashboard")
+- [X] T038 [US1] Add project reference to HookVerse.Api in src/HookVerse.AppHost/HookVerse.AppHost.csproj
+- [X] T039 [US1] Add project reference to HookVerse.Worker in src/HookVerse.AppHost/HookVerse.AppHost.csproj
+- [X] T040 [US1] Add project reference to HookVerse.Dashboard in src/HookVerse.AppHost/HookVerse.AppHost.csproj
+- [X] T041 [US1] Register HookVerse.Api project in AppHost using AddProject<Projects.HookVerse_Api>("api")
+- [X] T042 [US1] Register HookVerse.Worker project in AppHost using AddProject<Projects.HookVerse_Worker>("worker")
+- [X] T043 [US1] Register HookVerse.Dashboard project in AppHost using AddProject<Projects.HookVerse_Dashboard>("dashboard")
 
 #### Service Dependencies
 
-- [ ] T044 [US1] Add PostgreSQL reference to Api project using WithReference(postgres)
-- [ ] T045 [US1] Add RabbitMQ reference to Api project using WithReference(rabbitmq)
-- [ ] T046 [US1] Add Redis reference to Api project using WithReference(redis)
-- [ ] T047 [US1] Add PostgreSQL reference to Worker project using WithReference(postgres)
-- [ ] T048 [US1] Add RabbitMQ reference to Worker project using WithReference(rabbitmq)
-- [ ] T049 [US1] Add Redis reference to Worker project using WithReference(redis)
-- [ ] T050 [US1] Add PostgreSQL reference to Dashboard project using WithReference(postgres)
+- [X] T044 [US1] Add PostgreSQL reference to Api project using WithReference(postgres)
+- [X] T045 [US1] Add RabbitMQ reference to Api project using WithReference(rabbitmq)
+- [X] T046 [US1] Add Redis reference to Api project using WithReference(redis)
+- [X] T047 [US1] Add PostgreSQL reference to Worker project using WithReference(postgres)
+- [X] T048 [US1] Add RabbitMQ reference to Worker project using WithReference(rabbitmq)
+- [X] T049 [US1] Add Redis reference to Worker project using WithReference(redis)
+- [X] T050 [US1] Add PostgreSQL reference to Dashboard project using WithReference(postgres)
 
 #### Resource Limits Configuration
 
-- [ ] T051 [US1] Configure Api resource limits: 3 replicas, 500m CPU, 512Mi memory
-- [ ] T052 [US1] Configure Worker resource limits: 2 replicas, 250m CPU, 256Mi memory
-- [ ] T053 [US1] Configure Dashboard resource limits: 1 replica, 250m CPU, 256Mi memory
+- [X] T051 [US1] Configure Api resource limits: 3 replicas, 500m CPU, 512Mi memory
+- [X] T052 [US1] Configure Worker resource limits: 2 replicas, 250m CPU, 256Mi memory
+- [X] T053 [US1] Configure Dashboard resource limits: 1 replica, 250m CPU, 256Mi memory
 
 #### Service Integration
 
-- [ ] T054 [US1] Add ServiceDefaults reference to HookVerse.Api/HookVerse.Api.csproj
-- [ ] T055 [US1] Add ServiceDefaults reference to HookVerse.Worker/HookVerse.Worker.csproj
-- [ ] T056 [US1] Add ServiceDefaults reference to HookVerse.Dashboard/HookVerse.Dashboard.csproj
-- [ ] T057 [US1] Call builder.AddServiceDefaults() in src/HookVerse.Api/Program.cs (before other services)
-- [ ] T058 [US1] Call builder.AddServiceDefaults() in src/HookVerse.Worker/Program.cs (before other services)
-- [ ] T059 [US1] Call builder.AddServiceDefaults() in src/HookVerse.Dashboard/Program.cs (before other services)
+- [X] T054 [US1] Add ServiceDefaults reference to HookVerse.Api/HookVerse.Api.csproj
+- [X] T055 [US1] Add ServiceDefaults reference to HookVerse.Worker/HookVerse.Worker.csproj
+- [X] T056 [US1] Add ServiceDefaults reference to HookVerse.Dashboard/HookVerse.Dashboard.csproj
+- [X] T057 [US1] Call builder.AddServiceDefaults() in src/HookVerse.Api/Program.cs (before other services)
+- [X] T058 [US1] Call builder.AddServiceDefaults() in src/HookVerse.Worker/Program.cs (before other services)
+- [X] T059 [US1] Call builder.AddServiceDefaults() in src/HookVerse.Dashboard/Program.cs (before other services)
 
 #### Health Check Endpoints
 
-- [ ] T060 [US1] Add health checks to Api in src/HookVerse.Api/Program.cs using AddDefaultHealthChecks()
-- [ ] T061 [US1] Map /health/live endpoint in src/HookVerse.Api/Program.cs with "live" tag filter
-- [ ] T062 [US1] Map /health/ready endpoint in src/HookVerse.Api/Program.cs with "ready" tag filter
-- [ ] T063 [P] [US1] Add health checks to Worker in src/HookVerse.Worker/Program.cs using AddDefaultHealthChecks()
-- [ ] T064 [P] [US1] Map /health/live endpoint in src/HookVerse.Worker/Program.cs with "live" tag filter
-- [ ] T065 [P] [US1] Map /health/ready endpoint in src/HookVerse.Worker/Program.cs with "ready" tag filter
-- [ ] T066 [P] [US1] Add health checks to Dashboard in src/HookVerse.Dashboard/Program.cs using AddDefaultHealthChecks()
-- [ ] T067 [P] [US1] Map /health/live endpoint in src/HookVerse.Dashboard/Program.cs with "live" tag filter
-- [ ] T068 [P] [US1] Map /health/ready endpoint in src/HookVerse.Dashboard/Program.cs with "ready" tag filter
+- [X] T060 [US1] Add health checks to Api in src/HookVerse.Api/Program.cs using AddDefaultHealthChecks()
+- [X] T061 [US1] Map /health/live endpoint in src/HookVerse.Api/Program.cs with "live" tag filter
+- [X] T062 [US1] Map /health/ready endpoint in src/HookVerse.Api/Program.cs with "ready" tag filter
+- [X] T063 [P] [US1] Add health checks to Worker in src/HookVerse.Worker/Program.cs using AddDefaultHealthChecks()
+- [X] T064 [P] [US1] Map /health/live endpoint in src/HookVerse.Worker/Program.cs with "live" tag filter
+- [X] T065 [P] [US1] Map /health/ready endpoint in src/HookVerse.Worker/Program.cs with "ready" tag filter
+- [X] T066 [P] [US1] Add health checks to Dashboard in src/HookVerse.Dashboard/Program.cs using AddDefaultHealthChecks()
+- [X] T067 [P] [US1] Map /health/live endpoint in src/HookVerse.Dashboard/Program.cs with "live" tag filter
+- [X] T068 [P] [US1] Map /health/ready endpoint in src/HookVerse.Dashboard/Program.cs with "ready" tag filter
 
 #### Launch Configuration
 
-- [ ] T069 [US1] Create launchSettings.json in src/HookVerse.AppHost/Properties/ with Aspire dashboard profile
-- [ ] T070 [US1] Configure Aspire dashboard URL to http://localhost:15888 in launchSettings.json
+- [X] T069 [US1] Create launchSettings.json in src/HookVerse.AppHost/Properties/ with Aspire dashboard profile
+- [X] T070 [US1] Configure Aspire dashboard URL to http://localhost:15888 in launchSettings.json
 
 #### Integration Tests
 
