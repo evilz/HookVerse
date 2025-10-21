@@ -234,23 +234,23 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### Connection String Migration
 
-- [ ] T077 [P] [US2] Remove hardcoded PostgreSQL connection string from src/HookVerse.Api/appsettings.json
-- [ ] T078 [P] [US2] Remove hardcoded PostgreSQL connection string from src/HookVerse.Worker/appsettings.json
-- [ ] T079 [P] [US2] Remove hardcoded PostgreSQL connection string from src/HookVerse.Dashboard/appsettings.json
-- [ ] T080 [P] [US2] Remove hardcoded RabbitMQ connection string from src/HookVerse.Api/appsettings.json
-- [ ] T081 [P] [US2] Remove hardcoded RabbitMQ connection string from src/HookVerse.Worker/appsettings.json
-- [ ] T082 [P] [US2] Remove hardcoded Redis connection string from src/HookVerse.Api/appsettings.json
-- [ ] T083 [P] [US2] Remove hardcoded Redis connection string from src/HookVerse.Worker/appsettings.json
+- [X] T077 [P] [US2] Remove hardcoded PostgreSQL connection string from src/HookVerse.Api/appsettings.json
+- [X] T078 [P] [US2] Remove hardcoded PostgreSQL connection string from src/HookVerse.Worker/appsettings.json
+- [X] T079 [P] [US2] Remove hardcoded PostgreSQL connection string from src/HookVerse.Dashboard/appsettings.json
+- [X] T080 [P] [US2] Remove hardcoded RabbitMQ connection string from src/HookVerse.Api/appsettings.json
+- [X] T081 [P] [US2] Remove hardcoded RabbitMQ connection string from src/HookVerse.Worker/appsettings.json
+- [X] T082 [P] [US2] Remove hardcoded Redis connection string from src/HookVerse.Api/appsettings.json
+- [X] T083 [P] [US2] Remove hardcoded Redis connection string from src/HookVerse.Worker/appsettings.json
 
 #### DbContext Configuration Update
 
-- [ ] T084 [US2] Update DbContext configuration in src/HookVerse.Infrastructure/Extensions/ServiceCollectionExtensions.cs to use GetConnectionString("postgres")
-- [ ] T085 [US2] Remove connection string fallbacks and defaults (rely on Aspire injection)
+- [X] T084 [US2] Update DbContext configuration in src/HookVerse.Infrastructure/Extensions/ServiceCollectionExtensions.cs to use GetConnectionString("postgres")
+- [X] T085 [US2] Remove connection string fallbacks and defaults (rely on Aspire injection)
 
 #### HttpClient Service Discovery Configuration
 
-- [ ] T086 [US2] Configure HttpClient for Worker calls in src/HookVerse.Api/Program.cs with BaseAddress = new Uri("http://worker")
-- [ ] T087 [US2] Configure HttpClient for Api calls in src/HookVerse.Worker/Program.cs with BaseAddress = new Uri("http://api")
+- [X] T086 [US2] Configure HttpClient for Worker calls in src/HookVerse.Api/Program.cs with BaseAddress = new Uri("http://worker")
+- [X] T087 [US2] Configure HttpClient for Api calls in src/HookVerse.Worker/Program.cs with BaseAddress = new Uri("http://api")
 
 #### Integration Tests
 

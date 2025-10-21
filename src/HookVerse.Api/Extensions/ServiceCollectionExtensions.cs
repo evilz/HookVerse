@@ -23,7 +23,10 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddDatabase(this IServiceCollection services, IConfiguration configuration)
     {
         var provider = configuration["Database:Provider"] ?? "PostgreSQL";
-        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        // Use Aspire-injected connection string name "webhookdb" (or fallback to "postgres")
+        var connectionString = configuration.GetConnectionString("webhookdb") 
+            ?? configuration.GetConnectionString("postgres")
+            ?? configuration.GetConnectionString("DefaultConnection"); // Fallback for non-Aspire scenarios
 
         services.AddDbContext<HookVerseDbContext>(options =>
         {
@@ -41,7 +44,7 @@ public static class ServiceCollectionExtensions
                 default:
                     if (string.IsNullOrEmpty(connectionString))
                     {
-                        throw new InvalidOperationException("DefaultConnection not configured for PostgreSQL");
+                        throw new InvalidOperationException("Database connection string not configured. Expected 'webhookdb', 'postgres', or 'DefaultConnection'.");
                     }
                     options.UseNpgsql(connectionString, npgsqlOptions =>
                     {

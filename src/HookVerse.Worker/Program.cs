@@ -30,9 +30,11 @@ try
     // Add Serilog
     builder.Services.AddSerilog(Log.Logger);
 
-    // Add Database
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? throw new InvalidOperationException("DefaultConnection not configured");
+    // Add Database - Use Aspire-injected connection string
+    var connectionString = builder.Configuration.GetConnectionString("webhookdb")
+        ?? builder.Configuration.GetConnectionString("postgres")
+        ?? builder.Configuration.GetConnectionString("DefaultConnection") // Fallback for non-Aspire scenarios
+        ?? throw new InvalidOperationException("Database connection string not configured. Expected 'webhookdb', 'postgres', or 'DefaultConnection'.");
 
     builder.Services.AddDbContext<HookVerseDbContext>(options =>
     {

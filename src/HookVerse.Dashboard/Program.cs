@@ -15,8 +15,9 @@ builder.Services.AddRazorComponents()
 // Add SignalR for real-time notifications
 builder.Services.AddSignalR();
 
-// Register HttpClient for API calls
-var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7001";
+// Register HttpClient for API calls with service discovery
+// Use Aspire service name "http://api" or fallback to configured URL for non-Aspire scenarios
+var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://api";
 builder.Services.AddHttpClient<IWebhookApiClient, WebhookApiClient>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
