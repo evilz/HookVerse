@@ -17,7 +17,7 @@ namespace HookVerse.Integration.Tests;
 public abstract class IntegrationTestBase : IAsyncLifetime
 {
     private SqliteConnection? _connection;
-    protected WebApplicationFactory<Program>? _factory;
+    protected WebApplicationFactory<HookVerse.Api.Program>? _factory;
     protected HttpClient? _client;
 
     // IntegrationTestBase uses an in-memory SQLite connection for fast tests.
@@ -33,7 +33,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         _connection = new SqliteConnection("DataSource=:memory:");
         _connection.Open();
 
-        _factory = new WebApplicationFactory<Program>()
+        _factory = new WebApplicationFactory<HookVerse.Api.Program>()
             .WithWebHostBuilder(builder =>
             {
                 // Override configuration BEFORE services are registered

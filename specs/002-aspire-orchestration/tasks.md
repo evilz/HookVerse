@@ -254,11 +254,11 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### Integration Tests
 
-- [ ] T088 [US2] Create ServiceDiscoveryTests.cs in tests/HookVerse.AppHost.Tests/
-- [ ] T089 [US2] Implement test: Api_Can_Discover_Worker_Service to verify Api → Worker communication
-- [ ] T090 [US2] Implement test: Worker_Can_Discover_Api_Service to verify Worker → Api communication
-- [ ] T091 [US2] Implement test: Connection_Strings_Are_Injected to verify all services have postgres, rabbitmq, redis connections
-- [ ] T092 [US2] Implement test: No_Hardcoded_Connection_Strings to scan appsettings.json files for hardcoded values
+- [X] T088 [US2] Create ServiceDiscoveryTests.cs in tests/HookVerse.AppHost.Tests/
+- [X] T089 [US2] Implement test: Api_Can_Discover_Worker_Service to verify Api → Worker communication
+- [X] T090 [US2] Implement test: Worker_Can_Discover_Api_Service to verify Worker → Api communication
+- [X] T091 [US2] Implement test: Connection_Strings_Are_Injected to verify all services have postgres, rabbitmq, redis connections
+- [X] T092 [US2] Implement test: No_Hardcoded_Connection_Strings to scan appsettings.json files for hardcoded values
 
 **Completion Criteria**:
 - ✅ All T077-T092 tasks completed

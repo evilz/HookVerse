@@ -104,4 +104,7 @@ static void ConfigurePipeline(WebApplication app)
 }
 
 // Expose Program for WebApplicationFactory in integration tests
-public partial class Program { }
+namespace HookVerse.Api
+{
+    public partial class Program { }
+}
