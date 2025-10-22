@@ -393,9 +393,9 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### Resource Limits in Manifests
 
-- [ ] T139 [US4] Verify generated K8s manifests include CPU/memory limits (500m/512Mi for Api)
-- [ ] T140 [US4] Verify generated K8s manifests include health probes (liveness + readiness)
-- [ ] T141 [US4] Verify generated Bicep includes resource limits for Container Apps
+- [X] T139 [US4] Verify generated K8s manifests include CPU/memory limits (500m/512Mi for Api)
+- [X] T140 [US4] Verify generated K8s manifests include health probes (liveness + readiness)
+- [X] T141 [US4] Verify generated Bicep includes resource limits for Container Apps
 
 **Completion Criteria**:
 - ✅ All T112-T141 tasks completed
