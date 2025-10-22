@@ -383,13 +383,13 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### Schema Validation Tests
 
-- [ ] T132 [US4] Create ManifestGenerationTests.cs in tests/HookVerse.AppHost.Tests/
-- [ ] T133 [US4] Implement test: Kubernetes_Manifests_Are_Generated to verify K8s YAML creation
-- [ ] T134 [US4] Implement test: Kubernetes_Manifests_Are_Valid to validate YAML against K8s schema
-- [ ] T135 [US4] Implement test: Azure_Bicep_Is_Generated to verify Bicep template creation
-- [ ] T136 [US4] Implement test: Azure_Bicep_Is_Valid to validate Bicep syntax
-- [ ] T137 [US4] Implement test: Manifest_Generation_Performance to measure < 30 second constraint
-- [ ] T138 [US4] Implement test: Generated_Manifests_Are_Deterministic using snapshot testing
+- [X] T132 [US4] Create ManifestGenerationTests.cs in tests/HookVerse.AppHost.Tests/
+- [X] T133 [US4] Implement test: Kubernetes_Manifests_Are_Generated to verify K8s YAML creation
+- [X] T134 [US4] Implement test: Kubernetes_Manifests_Are_Valid to validate YAML against K8s schema
+- [X] T135 [US4] Implement test: Azure_Bicep_Is_Generated to verify Bicep template creation
+- [X] T136 [US4] Implement test: Azure_Bicep_Is_Valid to validate Bicep syntax
+- [X] T137 [US4] Implement test: Manifest_Generation_Performance to measure < 30 second constraint
+- [X] T138 [US4] Implement test: Generated_Manifests_Are_Deterministic using snapshot testing
 
 #### Resource Limits in Manifests
 
