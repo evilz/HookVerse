@@ -1,0 +1,390 @@
+@page "/post"
+@rendermode InteractiveServer
+@using HookVerse.Dashboard.Models
+
+<PageTitle>Activity Log - HookVerse</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Activity log</h1>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="showMentionedOnly" @bind="showMentionedOnly">
+                        <label class="form-check-label text-muted small" for="showMentionedOnly">
+                            Show mentioned only
+                        </label>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary" type="button">
+                        <i class="bi bi-funnel"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Activity Timeline -->
+            <div class="activity-timeline">
+                @{
+                    string currentDate = "";
+                    var filteredActivities = showMentionedOnly 
+                        ? activityData.Where(a => a.Type == "mention").ToList() 
+                        : activityData;
+                }
+                @foreach (var item in filteredActivities)
+                {
+                    var showDate = currentDate != item.Date;
+                    if (showDate)
+                    {
+                        currentDate = item.Date;
+                    }
+
+                    <div class="mb-4">
+                        @if (showDate)
+                        {
+                            <!-- Date Header -->
+                            <div class="text-muted small fw-medium mb-3 text-uppercase">
+                                @item.Date
+                            </div>
+                        }
+
+                        <!-- Activity Item -->
+                        <div class="d-flex gap-3 position-relative">
+                            <!-- Timeline Line -->
+                            @if (item.Id != filteredActivities.Last().Id)
+                            {
+                                <div class="timeline-line"></div>
+                            }
+
+                            <!-- Avatar or Icon -->
+                            <div class="flex-shrink-0 position-relative" style="z-index: 10;">
+                                @if (item.Type == "tag_added" || item.Type == "file_added")
+                                {
+                                    <div class="activity-icon-wrapper">
+                                        @GetActivityIcon(item.Type)
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="activity-avatar">
+                                        @if (!string.IsNullOrEmpty(item.User.Avatar))
+                                        {
+                                            <img src="@item.User.Avatar" alt="@item.User.Name" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;" />
+                                        }
+                                        else
+                                        {
+                                            <div class="avatar-initials">
+                                                @item.User.Initials
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Content -->
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="d-flex flex-wrap align-items-center gap-2 small">
+                                    <div class="d-flex flex-wrap align-items-center gap-2">
+                                        <span class="fw-medium">@item.User.Name</span>
+                                        <span class="text-muted">@item.Action</span>
+                                        @if (!string.IsNullOrEmpty(item.Target))
+                                        {
+                                            <span class="fw-medium">@item.Target</span>
+                                        }
+                                        @if (item.Status != null)
+                                        {
+                                            <span class="text-muted">status to</span>
+                                            <span class="badge @GetStatusClass(item.Status.Color)">
+                                                <span class="status-dot @GetStatusDotClass(item.Status.Color)"></span>
+                                                @item.Status.Text
+                                            </span>
+                                        }
+                                        @if (!string.IsNullOrEmpty(item.Assignee))
+                                        {
+                                            <span class="text-muted">to</span>
+                                            <span class="fw-medium">@item.Assignee</span>
+                                        }
+                                    </div>
+                                    <span class="text-muted ms-auto">@item.Timestamp</span>
+                                </div>
+
+                                <!-- Tags -->
+                                @if (item.Tags != null && item.Tags.Any())
+                                {
+                                    <div class="d-flex flex-wrap gap-2 mt-2">
+                                        @foreach (var tag in item.Tags)
+                                        {
+                                            <div class="d-flex align-items-center gap-1">
+                                                <span class="tag-dot @GetTagClass(tag.Color)"></span>
+                                                <span class="text-muted small">@tag.Text</span>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                                <!-- Comment -->
+                                @if (!string.IsNullOrEmpty(item.Comment))
+                                {
+                                    <div class="comment-box mt-2">
+                                        @item.Comment
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .activity-timeline {
+        max-width: 800px;
+    }
+
+    .timeline-line {
+        position: absolute;
+        left: 16px;
+        top: 40px;
+        bottom: -20px;
+        width: 1px;
+        background-color: #dee2e6;
+    }
+
+    .activity-icon-wrapper {
+        width: 32px;
+        height: 32px;
+        background-color: #f8f9fa;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .activity-avatar {
+        width: 32px;
+        height: 32px;
+    }
+
+    .avatar-initials {
+        width: 32px;
+        height: 32px;
+        background-color: #0d6efd;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .status-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        margin-right: 4px;
+    }
+
+    .status-dot.green {
+        background-color: #198754;
+    }
+
+    .status-dot.blue {
+        background-color: #0d6efd;
+    }
+
+    .status-dot.red {
+        background-color: #dc3545;
+    }
+
+    .status-dot.orange {
+        background-color: #fd7e14;
+    }
+
+    .tag-dot {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+    }
+
+    .tag-dot.red {
+        background-color: #dc3545;
+    }
+
+    .tag-dot.blue {
+        background-color: #0d6efd;
+    }
+
+    .comment-box {
+        background-color: #f8f9fa;
+        color: #6c757d;
+        border-radius: 0.375rem;
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    .gap-3 {
+        gap: 1rem !important;
+    }
+
+    .min-w-0 {
+        min-width: 0;
+    }
+</style>
+
+@code {
+    private bool showMentionedOnly = false;
+
+    private List<ActivityItem> activityData = new()
+    {
+        new ActivityItem
+        {
+            Id = "1",
+            Type = "status_change",
+            User = new ActivityUser { Name = "Angelina Gotelli", Initials = "AG" },
+            Action = "has change",
+            Target = "PD-979",
+            Status = new ActivityStatus { Text = "Completed", Color = "green" },
+            Timestamp = "06:20 PM",
+            Date = "SUNDAY, 06 MARCH"
+        },
+        new ActivityItem
+        {
+            Id = "2",
+            Type = "comment",
+            User = new ActivityUser { Name = "Max Alexander", Initials = "MA", Avatar = "/thoughtful-man.png" },
+            Action = "comment on your",
+            Target = "Post",
+            Comment = "Fine, Java MIGHT be a good example of what a programming language should be like. But Java applications are good examples of what applications SHOULDN'T be like.",
+            Timestamp = "05:53 PM",
+            Date = "SUNDAY, 06 MARCH"
+        },
+        new ActivityItem
+        {
+            Id = "3",
+            Type = "tag_added",
+            User = new ActivityUser { Name = "Eugene Stewart", Initials = "ES" },
+            Action = "added tags",
+            Tags = new List<ActivityTag>
+            {
+                new ActivityTag { Text = "Live Issue", Color = "red" },
+                new ActivityTag { Text = "Backend", Color = "blue" }
+            },
+            Timestamp = "04:40 PM",
+            Date = "SUNDAY, 06 MARCH"
+        },
+        new ActivityItem
+        {
+            Id = "4",
+            Type = "file_added",
+            User = new ActivityUser { Name = "Shannon Baker", Initials = "SB" },
+            Action = "added",
+            Target = "document.csv",
+            Timestamp = "03:18 PM",
+            Date = "SUNDAY, 06 MARCH"
+        },
+        new ActivityItem
+        {
+            Id = "5",
+            Type = "mention",
+            User = new ActivityUser { Name = "Roberta Horton", Initials = "RH", Avatar = "/diverse-woman-portrait.png" },
+            Action = "mentioned you in a comment",
+            Target = "Post",
+            Comment = "@Carolyn One of the main causes of the fall of the Roman Empire was that-lacking zero-they had no way to indicate successful termination of their C programs.",
+            Timestamp = "02:17 PM",
+            Date = "SUNDAY, 06 MARCH"
+        },
+        new ActivityItem
+        {
+            Id = "6",
+            Type = "assignment",
+            User = new ActivityUser { Name = "Lee Wheeler", Initials = "LW" },
+            Action = "assigned ticket",
+            Target = "PD-1092",
+            Assignee = "Alvin Moreno",
+            Timestamp = "11:13 AM",
+            Date = "SUNDAY, 06 MARCH"
+        },
+        new ActivityItem
+        {
+            Id = "7",
+            Type = "comment",
+            User = new ActivityUser { Name = "Jessica Wells", Initials = "JW", Avatar = "/woman-flowers.jpg" },
+            Action = "comment on your",
+            Target = "Post",
+            Comment = "The trouble with programmers is that you can never tell what a programmer is doing until it's too late.",
+            Timestamp = "08:49 AM",
+            Date = "SATURDAY, 05 MARCH"
+        },
+        new ActivityItem
+        {
+            Id = "8",
+            Type = "status_change",
+            User = new ActivityUser { Name = "Earl Miles", Initials = "EM", Avatar = "/man-beard.jpg" },
+            Action = "has change",
+            Target = "PD-977",
+            Status = new ActivityStatus { Text = "In progress", Color = "blue" },
+            Timestamp = "08:30 AM",
+            Date = "SATURDAY, 05 MARCH"
+        }
+    };
+
+    private string GetStatusClass(string color)
+    {
+        return color switch
+        {
+            "green" => "bg-success-subtle text-success",
+            "blue" => "bg-primary-subtle text-primary",
+            "red" => "bg-danger-subtle text-danger",
+            "orange" => "bg-warning-subtle text-warning",
+            _ => "bg-secondary-subtle text-secondary"
+        };
+    }
+
+    private string GetStatusDotClass(string color)
+    {
+        return color;
+    }
+
+    private string GetTagClass(string color)
+    {
+        return color;
+    }
+
+    private Microsoft.AspNetCore.Components.RenderFragment GetActivityIcon(string type)
+    {
+        return type switch
+        {
+            "tag_added" => builder =>
+            {
+                builder.OpenElement(0, "i");
+                builder.AddAttribute(1, "class", "bi bi-tag text-muted");
+                builder.CloseElement();
+            },
+            "file_added" => builder =>
+            {
+                builder.OpenElement(0, "i");
+                builder.AddAttribute(1, "class", "bi bi-file-text text-muted");
+                builder.CloseElement();
+            },
+            "comment" or "mention" => builder =>
+            {
+                builder.OpenElement(0, "i");
+                builder.AddAttribute(1, "class", "bi bi-chat text-muted");
+                builder.CloseElement();
+            },
+            "assignment" => builder =>
+            {
+                builder.OpenElement(0, "i");
+                builder.AddAttribute(1, "class", "bi bi-person text-muted");
+                builder.CloseElement();
+            },
+            _ => builder => { }
+        };
+    }
+}
