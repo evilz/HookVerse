@@ -200,12 +200,12 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### Integration Tests
 
-- [ ] T071 [US1] Create AspireHostStartupTests.cs in tests/HookVerse.AppHost.Tests/
-- [ ] T072 [US1] Implement test: AppHost_Starts_Successfully using DistributedApplicationTestingBuilder
-- [ ] T073 [US1] Implement test: All_Services_Are_Registered to verify 6 resources (3 containers + 3 projects)
-- [ ] T074 [US1] Implement test: PostgreSQL_Container_Starts to verify postgres resource is running
-- [ ] T075 [US1] Implement test: RabbitMQ_Container_Starts to verify rabbitmq resource is running
-- [ ] T076 [US1] Implement test: Redis_Container_Starts to verify redis resource is running
+- [X] T071 [US1] Create AspireHostStartupTests.cs in tests/HookVerse.AppHost.Tests/
+- [X] T072 [US1] Implement test: AppHost_Starts_Successfully using DistributedApplicationTestingBuilder
+- [X] T073 [US1] Implement test: All_Services_Are_Registered to verify 6 resources (3 containers + 3 projects)
+- [X] T074 [US1] Implement test: PostgreSQL_Container_Starts to verify postgres resource is running
+- [X] T075 [US1] Implement test: RabbitMQ_Container_Starts to verify rabbitmq resource is running
+- [X] T076 [US1] Implement test: Redis_Container_Starts to verify redis resource is running
 
 **Completion Criteria**:
 - ✅ All T033-T076 tasks completed
