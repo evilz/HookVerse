@@ -298,14 +298,14 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### Structured Logging Configuration
 
-- [ ] T099 [US3] Configure structured logging in ServiceDefaults with JSON formatter
-- [ ] T100 [US3] Add correlation ID middleware to Api in src/HookVerse.Api/Middleware/ for trace correlation
-- [ ] T101 [US3] Add correlation ID middleware to Worker in src/HookVerse.Worker/Middleware/ for trace correlation
+- [X] T099 [US3] Configure structured logging in ServiceDefaults with JSON formatter
+- [X] T100 [US3] Add correlation ID middleware to Api in src/HookVerse.Api/Middleware/ for trace correlation
+- [X] T101 [US3] Add correlation ID middleware to Worker in src/HookVerse.Worker/Middleware/ for trace correlation
 
 #### OTLP Exporter Configuration
 
-- [ ] T102 [US3] Create appsettings.Production.json in src/HookVerse.Api/ with OTEL_EXPORTER_OTLP_ENDPOINT placeholder
-- [ ] T103 [US3] Create appsettings.Production.json in src/HookVerse.Worker/ with OTEL_EXPORTER_OTLP_ENDPOINT placeholder
+- [X] T102 [US3] Create appsettings.Production.json in src/HookVerse.Api/ with OTEL_EXPORTER_OTLP_ENDPOINT placeholder
+- [X] T103 [US3] Create appsettings.Production.json in src/HookVerse.Worker/ with OTEL_EXPORTER_OTLP_ENDPOINT placeholder
 - [ ] T104 [US3] Document OTLP exporter configuration in README.md for Datadog and Application Insights
 
 #### Dashboard Verification

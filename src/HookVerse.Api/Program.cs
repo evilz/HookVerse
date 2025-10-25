@@ -75,6 +75,9 @@ static void ConfigureServices(WebApplicationBuilder builder)
 // Configure HTTP pipeline (used by both main and tests)
 static void ConfigurePipeline(WebApplication app)
 {
+    // Add correlation ID tracking (should be early in pipeline)
+    app.UseCorrelationId();
+
     // Configure the HTTP request pipeline
     app.UseExceptionHandler();
 
