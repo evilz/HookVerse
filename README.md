@@ -70,29 +70,37 @@
 ### Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (preview)
-- [Docker](https://www.docker.com/) & Docker Compose
+- [.NET Aspire workload](https://learn.microsoft.com/dotnet/aspire/fundamentals/setup-tooling): `dotnet workload install aspire`
+- [Docker Desktop](https://www.docker.com/) (for local container dependencies)
 - [Git](https://git-scm.com/)
 
-### 1. Clone and Start
+### 1. Clone and Run with Aspire
 
 ```bash
 # Clone repository
 git clone https://github.com/evilz/HookVerse.git
 cd HookVerse
 
-# Start dependencies (PostgreSQL + RabbitMQ)
-docker-compose up -d
-
-# Run database migrations
-dotnet ef database update --project src/HookVerse.Infrastructure
-
-# Start all services
-dotnet run --project src/HookVerse.Api          # API on http://localhost:5000
-dotnet run --project src/HookVerse.Worker        # Worker (background)
-dotnet run --project src/HookVerse.Dashboard     # Dashboard on http://localhost:5001
+# Run the AppHost (starts all services and dependencies automatically)
+dotnet run --project src/HookVerse.AppHost
 ```
 
-### 2. Send Your First Webhook
+That's it! .NET Aspire will automatically:
+- ✅ Start PostgreSQL, RabbitMQ, and Redis containers
+- ✅ Launch API, Worker, and Dashboard services
+- ✅ Configure service discovery and health checks
+- ✅ Open the Aspire dashboard at http://localhost:15888
+
+### 2. Access the Services
+
+Once the AppHost is running:
+
+- **Aspire Dashboard**: http://localhost:15888 (orchestration, logs, traces, metrics)
+- **HookVerse API**: http://localhost:5000 or https://localhost:5001
+- **HookVerse Dashboard**: http://localhost:7000 (webhook monitoring)
+- **API Documentation**: http://localhost:5000/swagger
+
+### 3. Send Your First Webhook
 
 ```bash
 # Create an event type
@@ -142,50 +150,71 @@ Open http://localhost:5001 to view:
 
 ## 📖 Documentation
 
-- **[Quickstart Guide](./specs/001-webhook-delivery-platform/quickstart.md)**: Step-by-step integration tutorial
+### Getting Started
+- **[Aspire Quickstart](./specs/002-aspire-orchestration/quickstart.md)**: Get started with .NET Aspire orchestration
+- **[Webhook Platform Quickstart](./specs/001-webhook-delivery-platform/quickstart.md)**: Step-by-step webhook integration tutorial
 - **[API Documentation](./docs/api/README.md)**: Complete REST API reference
-- **[Deployment Guide](./docs/deployment/kubernetes.md)**: Kubernetes & Helm deployment
+
+### Deployment & Operations
+- **[Aspire Orchestration Spec](./specs/002-aspire-orchestration/spec.md)**: Detailed Aspire architecture and design
+- **[Deployment Guide](./specs/002-aspire-orchestration/quickstart.md#deployment)**: Kubernetes and Azure Container Apps deployment
+- **[Observability Guide](./docs/observability/README.md)**: OpenTelemetry, metrics, traces, and dashboards
+
+### Development
 - **[Architecture Decisions](./docs/architecture/README.md)**: ADRs for key technical decisions
-- **[Feature Specification](./specs/001-webhook-delivery-platform/spec.md)**: Detailed feature requirements
+- **[Feature Specifications](./specs/)**: Detailed feature requirements and user stories
+- **[Aspire Dashboard](http://localhost:15888)**: Live service orchestration (when AppHost is running)
 
 ## 🛠️ Configuration
 
-### Environment Variables
+### Local Development with Aspire
+
+When running via `dotnet run --project src/HookVerse.AppHost`, all configuration is automatic:
+
+- **Service Discovery**: Services find each other via Aspire's built-in service discovery
+- **Connection Strings**: Injected automatically from AppHost configuration
+- **Zero Manual Config**: No need to set environment variables for local development
+
+### Production Environment Variables
+
+For production deployments (outside Aspire), configure via environment variables or Azure App Configuration:
 
 ```bash
-# Database (PostgreSQL example)
-Database__Type=PostgreSQL
-Database__Host=localhost
-Database__Port=5432
-Database__Database=hookverse
-Database__Username=hookverse
-Database__Password=your-password
+# Connection Strings (auto-configured in Aspire)
+ConnectionStrings__postgres=Server=localhost;Port=5432;Database=hookverse;User Id=hookverse;Password=***
+ConnectionStrings__rabbitmq=amqp://guest:guest@localhost:5672
+ConnectionStrings__redis=localhost:6379
 
-# Message Bus (RabbitMQ example)
-MessageBus__Transport=RabbitMQ
-MessageBus__Host=localhost
-MessageBus__Port=5672
-MessageBus__Username=guest
-MessageBus__Password=guest
-
-# OpenTelemetry
-OpenTelemetry__Enabled=true
-OpenTelemetry__OtlpEndpoint=http://localhost:4317
+# OpenTelemetry (optional for production)
+OTEL_EXPORTER_OTLP_ENDPOINT=https://your-collector:4317
+APPLICATIONINSIGHTS_CONNECTION_STRING=InstrumentationKey=***;IngestionEndpoint=***
 ```
 
-### Database Support
+### Aspire Manifest Generation
 
-- **PostgreSQL** (recommended for production)
-- **SQL Server**
-- **MySQL**
-- **SQLite** (development/testing)
+Generate deployment manifests for Kubernetes or Azure:
 
-### Message Bus Support
+```bash
+# Generate Kubernetes manifests
+dotnet publish src/HookVerse.AppHost --configuration Release --os linux --arch x64 /p:PublishProfile=aspire-manifest.pubxml
 
-- **RabbitMQ** (default)
-- **Apache Kafka**
-- **AWS SQS**
-- **Azure Service Bus**
+# Generated files in aspire/manifests/kubernetes/
+kubectl apply -f aspire/manifests/kubernetes/
+
+# Generate Azure Bicep templates  
+dotnet publish src/HookVerse.AppHost --configuration Release /p:PublishProfile=aspire-bicep.pubxml
+
+# Deploy to Azure
+az deployment group create --resource-group hookverse --template-file aspire/manifests/azure/main.bicep
+```
+
+### Environment-Specific Configuration
+
+HookVerse uses Aspire's conditional resource configuration:
+
+- **Development** (local): Uses containers (PostgreSQL, RabbitMQ, Redis in Docker)
+- **Production** (Azure): Uses managed services (Azure SQL, Service Bus, Redis Cache)
+- **No Code Changes**: Same codebase automatically adapts via AppHost configuration
 
 ## 🧪 Testing
 
@@ -196,37 +225,81 @@ dotnet test
 # Run with coverage
 dotnet test /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
 
-# Run integration tests only
-dotnet test --filter Category=Integration
+# Run specific test projects
+dotnet test tests/HookVerse.AppHost.Tests/          # Aspire integration tests
+dotnet test tests/HookVerse.Integration.Tests/       # API integration tests
+dotnet test tests/HookVerse.Core.Tests/              # Unit tests
+
+# Run Aspire integration tests specifically
+dotnet test tests/HookVerse.AppHost.Tests/ --logger "console;verbosity=detailed"
 ```
+
+### Test Categories
+
+- **Unit Tests**: Fast, isolated tests for business logic
+- **Integration Tests**: API and database integration testing
+- **Aspire Tests**: AppHost orchestration, service discovery, and manifest generation
+- **Performance Tests**: Load testing and benchmarking
 
 ## 🚢 Deployment
 
-### Docker
+HookVerse uses .NET Aspire for deployment manifest generation, eliminating the need for manual Dockerfile or Kubernetes YAML creation.
+
+### Kubernetes Deployment
 
 ```bash
-# Build images
-docker build -t hookverse/api -f src/HookVerse.Api/Dockerfile .
-docker build -t hookverse/worker -f src/HookVerse.Worker/Dockerfile .
-docker build -t hookverse/dashboard -f src/HookVerse.Dashboard/Dockerfile .
+# Generate Kubernetes manifests
+dotnet publish src/HookVerse.AppHost \
+  --configuration Release \
+  --os linux --arch x64 \
+  /p:PublishProfile=aspire-manifest.pubxml
 
-# Run with Docker Compose
-docker-compose up -d
+# Deploy to Kubernetes
+kubectl apply -f aspire/manifests/kubernetes/
+
+# Verify deployment
+kubectl get pods -n hookverse
+kubectl get services -n hookverse
 ```
 
-### Kubernetes
+### Azure Container Apps
 
 ```bash
-# Using Helm
-helm install hookverse ./docs/deployment/helm/hookverse \
-  --namespace hookverse \
-  --create-namespace
+# Generate Azure Bicep templates
+dotnet publish src/HookVerse.AppHost \
+  --configuration Release \
+  /p:PublishProfile=aspire-bicep.pubxml
 
-# Or using raw manifests
-kubectl apply -f docs/deployment/k8s/
+# Deploy to Azure
+az login
+az group create --name hookverse --location eastus
+az deployment group create \
+  --resource-group hookverse \
+  --template-file aspire/manifests/azure/main.bicep \
+  --parameters aspire/manifests/azure/main.parameters.json
+
+# Verify deployment
+az containerapp list --resource-group hookverse --output table
 ```
 
-See [Deployment Guide](./docs/deployment/kubernetes.md) for complete instructions.
+### Local Development
+
+```bash
+# Run everything locally via Aspire
+dotnet run --project src/HookVerse.AppHost
+
+# Access Aspire dashboard
+open http://localhost:15888
+```
+
+**Benefits of Aspire Deployment**:
+- ✅ Auto-generated manifests from AppHost configuration
+- ✅ Service discovery and health checks included
+- ✅ OpenTelemetry observability pre-configured
+- ✅ Resource limits and scaling policies defined
+- ✅ Same configuration for local, staging, and production
+
+See [specs/002-aspire-orchestration/quickstart.md](./specs/002-aspire-orchestration/quickstart.md) for detailed deployment instructions.
 
 ## 🤝 Contributing
 

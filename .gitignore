@@ -166,3 +166,16 @@ BenchmarkDotNet.Artifacts/
 **/k8s/secret.local.yaml
 **/k8s/*-secret.yaml
 !**/k8s/secret.yaml.template
+
+# .NET Aspire
+aspire/manifests/
+*.manifest.json
+*.manifest.yaml
+*.bicep
+!aspire/templates/
+!**/azure/*.bicep
+!**/kubernetes/*.yaml
+
+# Aspire User Secrets
+**/secrets.json
+!**/secrets.template.json

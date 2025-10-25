@@ -476,7 +476,7 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 - [ ] T160 Remove start-services.ps1 from repository root (replaced by dotnet run --project AppHost)
 - [ ] T161 Remove start-services.sh from repository root (replaced by dotnet run --project AppHost)
 - [ ] T162 Remove docker/ directory if it contains custom Dockerfiles (use Aspire defaults)
-- [ ] T163 Update .gitignore to include aspire/manifests/ generated files
+- [X] T163 Update .gitignore to include aspire/manifests/ generated files
 
 #### CI/CD Pipeline Updates
 
@@ -489,7 +489,7 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### Documentation Updates
 
-- [ ] T170 Update README.md with new getting started instructions (dotnet run --project AppHost)
+- [X] T170 Update README.md with new getting started instructions (dotnet run --project AppHost)
 - [ ] T171 Update DEVELOPMENT.md with Aspire development workflow
 - [ ] T172 Update RUNNING.md with Aspire dashboard usage
 - [ ] T173 Create DEPLOYMENT.md documenting manifest generation and deployment process
