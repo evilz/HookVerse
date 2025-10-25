@@ -306,20 +306,20 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 - [X] T102 [US3] Create appsettings.Production.json in src/HookVerse.Api/ with OTEL_EXPORTER_OTLP_ENDPOINT placeholder
 - [X] T103 [US3] Create appsettings.Production.json in src/HookVerse.Worker/ with OTEL_EXPORTER_OTLP_ENDPOINT placeholder
-- [ ] T104 [US3] Document OTLP exporter configuration in README.md for Datadog and Application Insights
+- [X] T104 [US3] Document OTLP exporter configuration in README.md for Datadog and Application Insights
 
 #### Dashboard Verification
 
-- [ ] T105 [US3] Verify Aspire dashboard displays logs from all services at http://localhost:15888
-- [ ] T106 [US3] Verify Aspire dashboard displays distributed traces with trace IDs
-- [ ] T107 [US3] Verify Aspire dashboard displays metrics (CPU, memory, request rates)
+- [X] T105 [US3] Verify Aspire dashboard displays logs from all services at http://localhost:15888
+- [X] T106 [US3] Verify Aspire dashboard displays distributed traces with trace IDs
+- [X] T107 [US3] Verify Aspire dashboard displays metrics (CPU, memory, request rates)
 
 #### Integration Tests
 
-- [ ] T108 [US3] Create ObservabilityTests.cs in tests/HookVerse.AppHost.Tests/
-- [ ] T109 [US3] Implement test: Traces_Are_Exported to verify telemetry collection
-- [ ] T110 [US3] Implement test: Metrics_Are_Collected to verify metric instrumentation
-- [ ] T111 [US3] Implement test: OTLP_Exporter_Activates_When_Configured to verify conditional exporter
+- [X] T108 [US3] Create ObservabilityTests.cs in tests/HookVerse.AppHost.Tests/
+- [X] T109 [US3] Implement test: Traces_Are_Exported to verify telemetry collection
+- [X] T110 [US3] Implement test: Metrics_Are_Collected to verify metric instrumentation
+- [X] T111 [US3] Implement test: OTLP_Exporter_Activates_When_Configured to verify conditional exporter
 
 **Completion Criteria**:
 - ✅ All T093-T111 tasks completed

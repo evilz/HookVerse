@@ -480,6 +480,267 @@ histogram_quantile(0.95, sum(rate(hookverse_webhook_delivery_duration_seconds_bu
 sum(rate(hookverse_webhooks_failed_total[5m])) by (event_type)
 ```
 
+## Production OTLP Exporter Configuration
+
+HookVerse services are configured to export telemetry using the OpenTelemetry Protocol (OTLP) when running in production. The OTLP exporter is conditionally enabled based on environment configuration.
+
+### Configuration
+
+The OTLP exporter is enabled by setting the `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable. This is configured in the `appsettings.Production.json` files for each service.
+
+**Conditional Activation**:
+```csharp
+// In ServiceDefaults/Extensions.cs
+private static TBuilder AddOpenTelemetryExporters<TBuilder>(this TBuilder builder) 
+    where TBuilder : IHostApplicationBuilder
+{
+    var useOtlpExporter = !string.IsNullOrWhiteSpace(
+        builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
+
+    if (useOtlpExporter)
+    {
+        builder.Services.AddOpenTelemetry().UseOtlpExporter();
+    }
+    
+    return builder;
+}
+```
+
+### Datadog Integration
+
+To export telemetry to Datadog, configure the OTLP endpoint to point to the Datadog Agent:
+
+**Using Datadog Agent** (recommended):
+```json
+{
+  "OTEL_EXPORTER_OTLP_ENDPOINT": "http://datadog-agent:4317",
+  "OTEL_RESOURCE_ATTRIBUTES": "service.name=hookverse-api,env=production"
+}
+```
+
+**Direct to Datadog API** (agentless):
+```json
+{
+  "OTEL_EXPORTER_OTLP_ENDPOINT": "https://api.datadoghq.com:4317",
+  "OTEL_EXPORTER_OTLP_HEADERS": "dd-api-key=<YOUR_API_KEY>",
+  "OTEL_RESOURCE_ATTRIBUTES": "service.name=hookverse-api,env=production"
+}
+```
+
+**Kubernetes Deployment with Datadog**:
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hookverse-api
+spec:
+  template:
+    spec:
+      containers:
+        - name: api
+          image: hookverse/api:latest
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://$(DD_AGENT_HOST):4317"
+            - name: DD_AGENT_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.name=hookverse-api,env=production,service.version=1.0.0"
+```
+
+**Datadog Agent Configuration**:
+```yaml
+# datadog-agent-config.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: datadog-agent-config
+data:
+  datadog.yaml: |
+    otlp_config:
+      receiver:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+      traces:
+        span_name_remappings:
+          "HTTP GET": "GET"
+          "HTTP POST": "POST"
+```
+
+### Azure Application Insights Integration
+
+To export telemetry to Azure Application Insights, use the Azure Monitor exporter:
+
+**Using Connection String**:
+```json
+{
+  "APPLICATIONINSIGHTS_CONNECTION_STRING": "InstrumentationKey=<YOUR_KEY>;IngestionEndpoint=https://<REGION>.in.applicationinsights.azure.com/;LiveEndpoint=https://<REGION>.livediagnostics.monitor.azure.com/"
+}
+```
+
+**Using OTLP Endpoint**:
+```json
+{
+  "OTEL_EXPORTER_OTLP_ENDPOINT": "https://<REGION>.in.applicationinsights.azure.com/v2.1/track",
+  "OTEL_EXPORTER_OTLP_HEADERS": "x-api-key=<YOUR_INSTRUMENTATION_KEY>"
+}
+```
+
+**Azure Kubernetes Service (AKS) with Managed Identity**:
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hookverse-api
+spec:
+  template:
+    metadata:
+      labels:
+        aadpodidbinding: hookverse-identity
+    spec:
+      containers:
+        - name: api
+          image: hookverse/api:latest
+          env:
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: appinsights-connection
+                  key: connection-string
+            - name: AZURE_CLIENT_ID
+              value: "<MANAGED_IDENTITY_CLIENT_ID>"
+```
+
+**Enable Azure Monitor Exporter** (in ServiceDefaults):
+```csharp
+// Uncomment in Extensions.cs
+if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
+{
+    builder.Services.AddOpenTelemetry()
+       .UseAzureMonitor();
+}
+```
+
+### Environment-Specific Configuration
+
+**Development** (local):
+```json
+{
+  "OTEL_EXPORTER_OTLP_ENDPOINT": ""  // Empty = uses Aspire dashboard only
+}
+```
+
+**Staging**:
+```json
+{
+  "OTEL_EXPORTER_OTLP_ENDPOINT": "http://otel-collector.staging:4317",
+  "OTEL_RESOURCE_ATTRIBUTES": "service.name=hookverse-api,env=staging"
+}
+```
+
+**Production**:
+```json
+{
+  "OTEL_EXPORTER_OTLP_ENDPOINT": "https://otel-collector.production:4317",
+  "OTEL_EXPORTER_OTLP_PROTOCOL": "grpc",
+  "OTEL_RESOURCE_ATTRIBUTES": "service.name=hookverse-api,env=production,service.version=1.0.0"
+}
+```
+
+### Testing OTLP Configuration
+
+**Verify Exporter is Active**:
+```bash
+# Check if OTLP endpoint is configured
+kubectl exec -it hookverse-api-xxx -- env | grep OTEL_EXPORTER_OTLP_ENDPOINT
+
+# Check application logs for OTLP initialization
+kubectl logs hookverse-api-xxx | grep -i "otlp\|telemetry"
+```
+
+**Test with Telemetry Endpoint**:
+```bash
+# Port forward to local OTLP collector for testing
+kubectl port-forward svc/otel-collector 4317:4317
+
+# Set environment variable and run service locally
+export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
+dotnet run --project src/HookVerse.Api
+```
+
+**Validate Data Flow**:
+```bash
+# Check OTel Collector is receiving data
+kubectl logs -l app=otel-collector --tail=50 | grep "TracesExporter"
+
+# Verify data in Datadog
+# Go to APM > Services and check for "hookverse-api"
+
+# Verify data in Application Insights
+# Go to Application Insights > Transaction search
+```
+
+### Performance Considerations
+
+1. **Batching**: OTLP exporter batches telemetry automatically (default 512 spans)
+2. **Compression**: gRPC protocol uses compression by default
+3. **Timeout**: Default export timeout is 30 seconds
+4. **Retry**: Automatic retry with exponential backoff
+5. **Resource Limits**: OTLP exporter respects ServiceDefaults memory limits
+
+### Security
+
+**TLS Configuration**:
+```json
+{
+  "OTEL_EXPORTER_OTLP_ENDPOINT": "https://otel-collector:4317",
+  "OTEL_EXPORTER_OTLP_CERTIFICATE": "/etc/certs/ca.crt"
+}
+```
+
+**Authentication Headers**:
+```json
+{
+  "OTEL_EXPORTER_OTLP_HEADERS": "api-key=<SECRET>,tenant-id=<TENANT>"
+}
+```
+
+**Using Kubernetes Secrets**:
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: otlp-config
+type: Opaque
+stringData:
+  endpoint: "https://api.datadoghq.com:4317"
+  headers: "dd-api-key=your-secret-key"
+---
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+        - name: api
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: otlp-config
+                  key: endpoint
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              valueFrom:
+                secretKeyRef:
+                  name: otlp-config
+                  key: headers
+```
+
 ## Troubleshooting
 
 ### No Traces Appearing
