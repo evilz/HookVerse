@@ -286,15 +286,15 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### OpenTelemetry Configuration
 
-- [ ] T093 [P] [US3] Verify OpenTelemetry tracing is enabled in ServiceDefaults (already done in T025)
-- [ ] T094 [P] [US3] Verify OpenTelemetry metrics are enabled in ServiceDefaults (already done in T026)
-- [ ] T095 [P] [US3] Add EF Core instrumentation to capture database query traces
+- [X] T093 [P] [US3] Verify OpenTelemetry tracing is enabled in ServiceDefaults (already done in T025)
+- [X] T094 [P] [US3] Verify OpenTelemetry metrics are enabled in ServiceDefaults (already done in T026)
+- [X] T095 [P] [US3] Add EF Core instrumentation to capture database query traces
 
 #### Activity Source Registration
 
-- [ ] T096 [P] [US3] Register custom ActivitySource "HookVerse.Api" in src/HookVerse.Api/Program.cs
-- [ ] T097 [P] [US3] Register custom ActivitySource "HookVerse.Worker" in src/HookVerse.Worker/Program.cs
-- [ ] T098 [P] [US3] Register custom ActivitySource "HookVerse.Dashboard" in src/HookVerse.Dashboard/Program.cs
+- [X] T096 [P] [US3] Register custom ActivitySource "HookVerse.Api" in src/HookVerse.Api/Program.cs
+- [X] T097 [P] [US3] Register custom ActivitySource "HookVerse.Worker" in src/HookVerse.Worker/Program.cs
+- [X] T098 [P] [US3] Register custom ActivitySource "HookVerse.Dashboard" in src/HookVerse.Dashboard/Program.cs
 
 #### Structured Logging Configuration
 

@@ -11,6 +11,7 @@ using HookVerse.Worker.Workers;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using System.Diagnostics;
 
 // Configure Serilog
 Log.Logger = new LoggerConfiguration()
@@ -26,6 +27,9 @@ try
 
     // Add Aspire service defaults (service discovery, OpenTelemetry, health checks)
     builder.AddServiceDefaults();
+
+    // Register custom ActivitySource for distributed tracing
+    builder.Services.AddSingleton(new ActivitySource("HookVerse.Worker"));
 
     // Add Serilog
     builder.Services.AddSerilog(Log.Logger);

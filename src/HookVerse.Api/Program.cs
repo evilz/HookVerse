@@ -1,6 +1,7 @@
 using HookVerse.Api.Extensions;
 using HookVerse.Api.Middleware;
 using Serilog;
+using System.Diagnostics;
 
 // Main entry point
 var builder = WebApplication.CreateBuilder(args);
@@ -29,6 +30,9 @@ static void ConfigureServices(WebApplicationBuilder builder)
 {
     // Add Aspire service defaults (service discovery, OpenTelemetry, health checks)
     builder.AddServiceDefaults();
+
+    // Register custom ActivitySource for distributed tracing
+    builder.Services.AddSingleton(new ActivitySource("HookVerse.Api"));
 
     // Configure Serilog logging
     builder.AddSerilogLogging();

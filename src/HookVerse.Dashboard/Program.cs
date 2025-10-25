@@ -2,11 +2,15 @@ using HookVerse.Dashboard.Components;
 using HookVerse.Dashboard.Services;
 using HookVerse.Dashboard.Hubs;
 using HookVerse.Dashboard.Middleware;
+using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add Aspire service defaults (service discovery, OpenTelemetry, health checks)
 builder.AddServiceDefaults();
+
+// Register custom ActivitySource for distributed tracing
+builder.Services.AddSingleton(new ActivitySource("HookVerse.Dashboard"));
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
