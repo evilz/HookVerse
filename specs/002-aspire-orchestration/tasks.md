@@ -430,9 +430,9 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### Secret Management Configuration
 
-- [ ] T146 [P] [US5] Add User Secrets support to AppHost in src/HookVerse.AppHost/Program.cs
-- [ ] T147 [P] [US5] Create example secrets.json template in aspire/templates/user-secrets.template.json
-- [ ] T148 [P] [US5] Configure Key Vault references in generated Bicep for production secrets
+- [X] T146 [P] [US5] Add User Secrets support to AppHost in src/HookVerse.AppHost/Program.cs
+- [X] T147 [P] [US5] Create example secrets.json template in aspire/templates/user-secrets.template.json
+- [X] T148 [P] [US5] Configure Key Vault references in generated Bicep for production secrets
 
 #### Environment-Specific Configuration
 

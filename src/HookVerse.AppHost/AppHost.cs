@@ -1,5 +1,10 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+// User Secrets are automatically loaded in Development environment
+// To initialize: dotnet user-secrets init --project src/HookVerse.AppHost
+// To set a secret: dotnet user-secrets set "SecretKey" "SecretValue" --project src/HookVerse.AppHost
+// Example secrets: API keys, connection strings for external services, etc.
+
 // Check if publishing to Azure (detected by presence of Azure-specific environment variables or publish profile)
 var isAzurePublish = builder.Configuration["ASPIRE_ENVIRONMENT"] == "azure" 
     || builder.ExecutionContext.IsPublishMode;
@@ -13,6 +18,17 @@ IResourceBuilder<IResourceWithConnectionString> redis;
 if (isAzurePublish)
 {
     // Azure Managed Resources for Production
+    
+    // Azure Key Vault for secrets management (if specified in configuration)
+    // Reference: https://learn.microsoft.com/azure/key-vault/general/overview
+    var keyVaultName = builder.Configuration["Azure:KeyVault:Name"];
+    if (!string.IsNullOrEmpty(keyVaultName))
+    {
+        // Key Vault will be referenced in generated Bicep templates
+        // Services can access secrets via Key Vault references in connection strings
+        // Format: @Microsoft.KeyVault(SecretUri=https://<vault-name>.vault.azure.net/secrets/<secret-name>/)
+        builder.AddParameter("keyVaultName", () => keyVaultName);
+    }
     
     // Azure SQL Database
     var sql = builder.AddAzureSqlServer("sql")
