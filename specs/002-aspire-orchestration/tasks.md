@@ -499,10 +499,10 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### Performance Validation
 
-- [ ] T177 Measure and document startup time (verify < 2 minutes)
-- [ ] T178 Measure and document hot-reload performance (verify < 5 seconds)
-- [ ] T179 Measure and document manifest generation time (verify < 30 seconds)
-- [ ] T180 Create performance baseline document in docs/performance-baseline.md
+- [X] T177 Measure and document startup time (verify < 2 minutes)
+- [X] T178 Measure and document hot-reload performance (verify < 5 seconds)
+- [X] T179 Measure and document manifest generation time (verify < 30 seconds)
+- [X] T180 Create performance baseline document in docs/performance-baseline.md
 
 #### Final Verification
 
