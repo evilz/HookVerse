@@ -490,7 +490,7 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 #### Documentation Updates
 
 - [X] T170 Update README.md with new getting started instructions (dotnet run --project AppHost)
-- [ ] T171 Update DEVELOPMENT.md with Aspire development workflow
+- [X] T171 Update DEVELOPMENT.md with Aspire development workflow
 - [ ] T172 Update RUNNING.md with Aspire dashboard usage
 - [ ] T173 Create DEPLOYMENT.md documenting manifest generation and deployment process
 - [ ] T174 Update API-GUIDE.md with service discovery patterns
