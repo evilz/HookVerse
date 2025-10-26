@@ -480,12 +480,12 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### CI/CD Pipeline Updates
 
-- [ ] T164 Update .github/workflows/ci.yml to install Aspire workload
-- [ ] T165 Add manifest generation step to CI pipeline using dotnet publish
-- [ ] T166 Add manifest validation step to CI pipeline (kubectl --dry-run, az bicep build)
-- [ ] T167 Update deployment workflow to use generated manifests
-- [ ] T168 Replace existing kubectl apply steps with Aspire-generated manifests
-- [ ] T169 Add Azure deployment step using generated Bicep templates
+- [X] T164 Update .github/workflows/ci.yml to install Aspire workload
+- [X] T165 Add manifest generation step to CI pipeline using dotnet publish
+- [X] T166 Add manifest validation step to CI pipeline (kubectl --dry-run, az bicep build)
+- [X] T167 Update deployment workflow to use generated manifests
+- [X] T168 Replace existing kubectl apply steps with Aspire-generated manifests
+- [X] T169 Add Azure deployment step using generated Bicep templates
 
 #### Documentation Updates
 

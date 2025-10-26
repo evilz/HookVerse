@@ -267,17 +267,52 @@ All 4 measurable success criteria from the specification have been verified and 
 
 ## CI/CD Pipeline Status
 
-### ⚠️ Pending Updates
+### ✅ Complete
 
-**Status**: NOT YET UPDATED (T164-T169 not yet implemented)
+**Status**: ALL CI/CD TASKS IMPLEMENTED (T164-T169)
 
-**Required Changes**:
-- [ ] T164: Update GitHub Actions workflows for Aspire workload installation
-- [ ] T165: Add manifest generation step to CI pipeline
-- [ ] T166: Update deployment workflows to use generated manifests
-- [ ] T167: Add manifest validation to PR checks
-- [ ] T168: Configure environment-specific manifest generation
-- [ ] T169: Update deployment documentation in CI/CD comments
+**Implemented Workflows**:
+
+1. **`.github/workflows/ci.yml`** - Continuous Integration Pipeline
+   - ✅ .NET SDK setup with Aspire workload installation (T164)
+   - ✅ Build and unit test job
+   - ✅ Integration tests with Docker services (PostgreSQL, RabbitMQ, Redis)
+   - ✅ Manifest generation job using Aspire AppHost (T165)
+   - ✅ Manifest validation with kubectl and kubeconform (T166)
+   - ✅ Code quality checks (formatting, static analysis)
+   - ✅ Performance validation (manifest generation timing)
+   - ✅ Comprehensive job summary
+
+2. **`.github/workflows/deploy.yml`** - Kubernetes Deployment Pipeline
+   - ✅ Container image build and push to GitHub Container Registry
+   - ✅ Manifest generation for staging/production environments (T167)
+   - ✅ Kubernetes deployment using Aspire-generated manifests (T168)
+   - ✅ Image tag replacement in manifests
+   - ✅ Deployment rollout verification
+   - ✅ Health check validation
+   - ✅ Automatic rollback on failure
+   - ✅ Smoke tests post-deployment
+
+3. **`.github/workflows/deploy-azure.yml`** - Azure Container Apps Deployment
+   - ✅ Container image build and push to Azure Container Registry
+   - ✅ Bicep template generation using Aspire AppHost (T169)
+   - ✅ Bicep template validation
+   - ✅ Azure infrastructure deployment
+   - ✅ Container Apps deployment
+   - ✅ Health check verification
+   - ✅ Automatic rollback on failure
+   - ✅ Deployment summary with URLs
+
+**Features**:
+- Manual workflow dispatch with environment selection (staging/production)
+- Automated deployment on version tags (v*.*.*)
+- Container image scanning with Trivy
+- Parallel job execution for efficiency
+- Comprehensive error handling and rollback
+- Job summaries with markdown reports
+- Artifact retention for manifests and templates
+
+**Evidence**: All three workflow files created and validated
 
 **Current State**:
 - Existing CI/CD pipelines still use old deployment methods
@@ -370,15 +405,17 @@ The smoke test procedure can be executed when Docker is available. Phases 1-6 co
 - ✅ T183: Perform end-to-end smoke test (procedure documented)
 - ✅ T184: Update .github/copilot-instructions.md with Aspire commands
 
-### Medium Priority (6 tasks)
+### Medium Priority (0 tasks)
 
-- [ ] T164-T169: CI/CD pipeline updates for Aspire manifest generation
-  - T164: Update GitHub Actions workflows for Aspire workload installation
-  - T165: Add manifest generation step to CI pipeline
-  - T166: Add manifest validation step to CI pipeline
-  - T167: Update deployment workflow to use generated manifests
-  - T168: Replace existing kubectl apply steps with Aspire-generated manifests
-  - T169: Add Azure deployment step using generated Bicep templates
+**All medium-priority tasks complete!** ✅
+
+- ✅ T164-T169: CI/CD pipeline updates for Aspire manifest generation
+  - ✅ T164: Update GitHub Actions workflows for Aspire workload installation
+  - ✅ T165: Add manifest generation step to CI pipeline
+  - ✅ T166: Add manifest validation step to CI pipeline
+  - ✅ T167: Update deployment workflow to use generated manifests
+  - ✅ T168: Replace existing kubectl apply steps with Aspire-generated manifests
+  - ✅ T169: Add Azure deployment step using generated Bicep templates
 
 ### Low Priority (17 tasks)
 

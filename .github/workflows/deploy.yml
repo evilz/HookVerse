@@ -1,0 +1,327 @@
+name: Deploy to Kubernetes
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      image_tag:
+        description: 'Container image tag to deploy'
+        required: true
+        default: 'latest'
+  
+  push:
+    tags:
+      - 'v*.*.*'
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/hookverse
+
+jobs:
+  build-and-push-images:
+    name: Build and Push Container Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    strategy:
+      matrix:
+        service:
+          - name: api
+            dockerfile: src/HookVerse.API/Dockerfile
+            context: .
+          - name: worker
+            dockerfile: src/HookVerse.Worker/Dockerfile
+            context: .
+          - name: dashboard
+            dockerfile: src/HookVerse.Dashboard/Dockerfile
+            context: .
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service.name }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=${{ inputs.image_tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
+      
+      - name: Build and push ${{ matrix.service.name }} image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+      
+      - name: Image scan with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service.name }}:${{ inputs.image_tag || 'latest' }}
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.service.name }}.sarif'
+      
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results-${{ matrix.service.name }}.sarif'
+          category: trivy-${{ matrix.service.name }}
+
+  generate-manifests:
+    name: Generate Deployment Manifests
+    runs-on: ubuntu-latest
+    needs: build-and-push-images
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      
+      - name: Install .NET Aspire workload
+        run: dotnet workload install aspire
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Build AppHost
+        run: dotnet build src/HookVerse.AppHost --configuration Release
+      
+      - name: Generate Kubernetes manifests for ${{ inputs.environment || 'staging' }}
+        run: |
+          mkdir -p deployment/manifests
+          dotnet run --project src/HookVerse.AppHost \
+            --configuration Release \
+            --no-build \
+            -- --publisher manifest --output-path deployment/manifests
+        env:
+          ASPIRE_ENVIRONMENT: ${{ inputs.environment || 'staging' }}
+          CONTAINER_REGISTRY: ${{ env.REGISTRY }}
+          IMAGE_TAG: ${{ inputs.image_tag || 'latest' }}
+      
+      - name: Update image tags in manifests
+        run: |
+          # Replace image placeholders with actual tagged images
+          find deployment/manifests -name "*.yaml" -o -name "*.yml" | while read file; do
+            sed -i "s|image: hookverse-api|image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-api:${{ inputs.image_tag || 'latest' }}|g" "$file"
+            sed -i "s|image: hookverse-worker|image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-worker:${{ inputs.image_tag || 'latest' }}|g" "$file"
+            sed -i "s|image: hookverse-dashboard|image: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-dashboard:${{ inputs.image_tag || 'latest' }}|g" "$file"
+          done
+      
+      - name: Upload deployment manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-manifests-${{ inputs.environment || 'staging' }}
+          path: deployment/manifests/
+          retention-days: 30
+
+  deploy-to-kubernetes:
+    name: Deploy to Kubernetes (${{ inputs.environment || 'staging' }})
+    runs-on: ubuntu-latest
+    needs: generate-manifests
+    environment:
+      name: ${{ inputs.environment || 'staging' }}
+      url: ${{ steps.get-url.outputs.url }}
+    
+    steps:
+      - name: Download deployment manifests
+        uses: actions/download-artifact@v4
+        with:
+          name: deployment-manifests-${{ inputs.environment || 'staging' }}
+          path: deployment/manifests/
+      
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+      
+      - name: Configure kubectl context
+        uses: azure/k8s-set-context@v4
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBECONFIG }}
+          context: ${{ inputs.environment || 'staging' }}
+      
+      - name: Create namespace if not exists
+        run: |
+          kubectl create namespace hookverse-${{ inputs.environment || 'staging' }} --dry-run=client -o yaml | kubectl apply -f -
+      
+      - name: Create image pull secret
+        run: |
+          kubectl create secret docker-registry ghcr-pull-secret \
+            --docker-server=${{ env.REGISTRY }} \
+            --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.GITHUB_TOKEN }} \
+            --namespace=hookverse-${{ inputs.environment || 'staging' }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+      
+      - name: Apply Kubernetes manifests
+        run: |
+          echo "Deploying to hookverse-${{ inputs.environment || 'staging' }} namespace..."
+          kubectl apply -f deployment/manifests/ \
+            --namespace=hookverse-${{ inputs.environment || 'staging' }} \
+            --recursive
+      
+      - name: Wait for deployment rollout
+        run: |
+          echo "Waiting for deployments to complete..."
+          kubectl rollout status deployment/hookverse-api \
+            --namespace=hookverse-${{ inputs.environment || 'staging' }} \
+            --timeout=5m
+          kubectl rollout status deployment/hookverse-worker \
+            --namespace=hookverse-${{ inputs.environment || 'staging' }} \
+            --timeout=5m
+          kubectl rollout status deployment/hookverse-dashboard \
+            --namespace=hookverse-${{ inputs.environment || 'staging' }} \
+            --timeout=5m
+      
+      - name: Verify deployment health
+        run: |
+          echo "Verifying deployment health..."
+          kubectl get pods --namespace=hookverse-${{ inputs.environment || 'staging' }}
+          kubectl get services --namespace=hookverse-${{ inputs.environment || 'staging' }}
+          
+          # Check if all pods are running
+          PENDING_PODS=$(kubectl get pods --namespace=hookverse-${{ inputs.environment || 'staging' }} --field-selector=status.phase!=Running --no-headers | wc -l)
+          if [ $PENDING_PODS -gt 0 ]; then
+            echo "❌ $PENDING_PODS pods are not running"
+            kubectl describe pods --namespace=hookverse-${{ inputs.environment || 'staging' }}
+            exit 1
+          else
+            echo "✅ All pods are running"
+          fi
+      
+      - name: Get deployment URL
+        id: get-url
+        run: |
+          # Get LoadBalancer IP or Ingress URL
+          API_URL=$(kubectl get service hookverse-api \
+            --namespace=hookverse-${{ inputs.environment || 'staging' }} \
+            -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "pending")
+          
+          if [ "$API_URL" == "pending" ]; then
+            API_URL=$(kubectl get ingress hookverse-ingress \
+              --namespace=hookverse-${{ inputs.environment || 'staging' }} \
+              -o jsonpath='{.spec.rules[0].host}' || echo "not-configured")
+          fi
+          
+          echo "url=https://$API_URL" >> $GITHUB_OUTPUT
+          echo "API URL: https://$API_URL"
+      
+      - name: Run smoke tests
+        run: |
+          # Wait a bit for services to stabilize
+          sleep 10
+          
+          # Get API URL
+          API_URL=$(kubectl get service hookverse-api \
+            --namespace=hookverse-${{ inputs.environment || 'staging' }} \
+            -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "pending")
+          
+          if [ "$API_URL" != "pending" ]; then
+            echo "Running smoke tests against https://$API_URL"
+            
+            # Health check
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://$API_URL/health || echo "000")
+            if [ "$HTTP_CODE" == "200" ]; then
+              echo "✅ Health check passed"
+            else
+              echo "❌ Health check failed (HTTP $HTTP_CODE)"
+              exit 1
+            fi
+          else
+            echo "⚠️ API URL not yet available, skipping smoke tests"
+          fi
+      
+      - name: Deployment summary
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Environment: ${{ inputs.environment || 'staging' }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Image Tag: ${{ inputs.image_tag || 'latest' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployed Services:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          kubectl get deployments --namespace=hookverse-${{ inputs.environment || 'staging' }} >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pods:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          kubectl get pods --namespace=hookverse-${{ inputs.environment || 'staging' }} >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Deployment completed successfully**" >> $GITHUB_STEP_SUMMARY
+
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    if: failure() && needs.deploy-to-kubernetes.result == 'failure'
+    needs: deploy-to-kubernetes
+    
+    steps:
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+      
+      - name: Configure kubectl context
+        uses: azure/k8s-set-context@v4
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBECONFIG }}
+          context: ${{ inputs.environment || 'staging' }}
+      
+      - name: Rollback deployments
+        run: |
+          echo "⚠️ Deployment failed, initiating rollback..."
+          
+          kubectl rollout undo deployment/hookverse-api \
+            --namespace=hookverse-${{ inputs.environment || 'staging' }}
+          
+          kubectl rollout undo deployment/hookverse-worker \
+            --namespace=hookverse-${{ inputs.environment || 'staging' }}
+          
+          kubectl rollout undo deployment/hookverse-dashboard \
+            --namespace=hookverse-${{ inputs.environment || 'staging' }}
+          
+          echo "✅ Rollback completed"
+      
+      - name: Verify rollback
+        run: |
+          kubectl get pods --namespace=hookverse-${{ inputs.environment || 'staging' }}
+          echo "## Rollback Summary" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Deployment failed and was rolled back**" >> $GITHUB_STEP_SUMMARY

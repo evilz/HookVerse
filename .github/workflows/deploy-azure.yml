@@ -1,0 +1,354 @@
+name: Deploy to Azure Container Apps
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      image_tag:
+        description: 'Container image tag to deploy'
+        required: true
+        default: 'latest'
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  AZURE_RESOURCE_GROUP: hookverse-${{ inputs.environment || 'staging' }}-rg
+  AZURE_LOCATION: eastus
+  CONTAINER_REGISTRY: hookverseacr
+  CONTAINER_APPS_ENVIRONMENT: hookverse-${{ inputs.environment || 'staging' }}-env
+
+jobs:
+  build-and-push-to-acr:
+    name: Build and Push to Azure Container Registry
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    
+    strategy:
+      matrix:
+        service:
+          - name: api
+            dockerfile: src/HookVerse.API/Dockerfile
+            context: .
+          - name: worker
+            dockerfile: src/HookVerse.Worker/Dockerfile
+            context: .
+          - name: dashboard
+            dockerfile: src/HookVerse.Dashboard/Dockerfile
+            context: .
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Log in to Azure Container Registry
+        run: |
+          az acr login --name ${{ env.CONTAINER_REGISTRY }}
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build and push ${{ matrix.service.name }} image
+        run: |
+          IMAGE_NAME="${{ env.CONTAINER_REGISTRY }}.azurecr.io/hookverse-${{ matrix.service.name }}"
+          IMAGE_TAG="${{ inputs.image_tag || 'latest' }}"
+          
+          docker buildx build \
+            --file ${{ matrix.service.dockerfile }} \
+            --tag ${IMAGE_NAME}:${IMAGE_TAG} \
+            --tag ${IMAGE_NAME}:latest \
+            --platform linux/amd64 \
+            --push \
+            ${{ matrix.service.context }}
+          
+          echo "Pushed: ${IMAGE_NAME}:${IMAGE_TAG}"
+
+  generate-bicep-templates:
+    name: Generate Azure Bicep Templates
+    runs-on: ubuntu-latest
+    needs: build-and-push-to-acr
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      
+      - name: Install .NET Aspire workload
+        run: dotnet workload install aspire
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Build AppHost
+        run: dotnet build src/HookVerse.AppHost --configuration Release
+      
+      - name: Generate Azure Bicep templates
+        run: |
+          mkdir -p deployment/azure
+          dotnet run --project src/HookVerse.AppHost \
+            --configuration Release \
+            --no-build \
+            -- --publisher manifest --output-path deployment/azure --format bicep
+        env:
+          ASPIRE_ENVIRONMENT: ${{ inputs.environment || 'staging' }}
+          CONTAINER_REGISTRY: ${{ env.CONTAINER_REGISTRY }}.azurecr.io
+          IMAGE_TAG: ${{ inputs.image_tag || 'latest' }}
+      
+      - name: Validate Bicep templates
+        run: |
+          # Install Azure CLI Bicep extension
+          az bicep version || az bicep install
+          
+          # Validate all Bicep files
+          find deployment/azure -name "*.bicep" | while read file; do
+            echo "Validating: $file"
+            az bicep build --file "$file" || (echo "❌ Validation failed for $file" && exit 1)
+          done
+          
+          echo "✅ All Bicep templates validated successfully"
+      
+      - name: Upload Bicep templates
+        uses: actions/upload-artifact@v4
+        with:
+          name: bicep-templates-${{ inputs.environment || 'staging' }}
+          path: deployment/azure/
+          retention-days: 30
+
+  deploy-azure-infrastructure:
+    name: Deploy Azure Infrastructure
+    runs-on: ubuntu-latest
+    needs: generate-bicep-templates
+    environment:
+      name: ${{ inputs.environment || 'staging' }}
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+      - name: Download Bicep templates
+        uses: actions/download-artifact@v4
+        with:
+          name: bicep-templates-${{ inputs.environment || 'staging' }}
+          path: deployment/azure/
+      
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Create Resource Group
+        run: |
+          az group create \
+            --name ${{ env.AZURE_RESOURCE_GROUP }} \
+            --location ${{ env.AZURE_LOCATION }} \
+            --tags environment=${{ inputs.environment || 'staging' }} project=hookverse
+      
+      - name: Create Container Apps Environment
+        run: |
+          # Check if environment exists
+          EXISTS=$(az containerapp env show \
+            --name ${{ env.CONTAINER_APPS_ENVIRONMENT }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query name -o tsv 2>/dev/null || echo "")
+          
+          if [ -z "$EXISTS" ]; then
+            echo "Creating Container Apps environment..."
+            az containerapp env create \
+              --name ${{ env.CONTAINER_APPS_ENVIRONMENT }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --location ${{ env.AZURE_LOCATION }} \
+              --enable-workload-profiles
+          else
+            echo "Container Apps environment already exists"
+          fi
+      
+      - name: Deploy Bicep templates
+        run: |
+          echo "Deploying infrastructure with Bicep..."
+          
+          # Deploy main Bicep template
+          az deployment group create \
+            --name hookverse-deployment-$(date +%Y%m%d-%H%M%S) \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --template-file deployment/azure/main.bicep \
+            --parameters \
+              environment=${{ inputs.environment || 'staging' }} \
+              containerRegistry=${{ env.CONTAINER_REGISTRY }}.azurecr.io \
+              imageTag=${{ inputs.image_tag || 'latest' }} \
+              containerAppsEnvironment=${{ env.CONTAINER_APPS_ENVIRONMENT }}
+      
+      - name: Get deployment outputs
+        id: deployment-outputs
+        run: |
+          # Get Container App URLs
+          API_URL=$(az containerapp show \
+            --name hookverse-api \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          
+          DASHBOARD_URL=$(az containerapp show \
+            --name hookverse-dashboard \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          
+          echo "api-url=https://$API_URL" >> $GITHUB_OUTPUT
+          echo "dashboard-url=https://$DASHBOARD_URL" >> $GITHUB_OUTPUT
+          
+          echo "## Deployment URLs" >> $GITHUB_STEP_SUMMARY
+          echo "- **API**: https://$API_URL" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dashboard**: https://$DASHBOARD_URL" >> $GITHUB_STEP_SUMMARY
+
+  verify-deployment:
+    name: Verify Azure Deployment
+    runs-on: ubuntu-latest
+    needs: deploy-azure-infrastructure
+    
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Verify Container Apps status
+        run: |
+          echo "Verifying Container Apps..."
+          
+          # Check API
+          API_STATUS=$(az containerapp show \
+            --name hookverse-api \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query properties.runningStatus -o tsv)
+          
+          # Check Worker
+          WORKER_STATUS=$(az containerapp show \
+            --name hookverse-worker \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query properties.runningStatus -o tsv)
+          
+          # Check Dashboard
+          DASHBOARD_STATUS=$(az containerapp show \
+            --name hookverse-dashboard \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query properties.runningStatus -o tsv)
+          
+          echo "API Status: $API_STATUS"
+          echo "Worker Status: $WORKER_STATUS"
+          echo "Dashboard Status: $DASHBOARD_STATUS"
+          
+          if [ "$API_STATUS" != "Running" ] || [ "$WORKER_STATUS" != "Running" ] || [ "$DASHBOARD_STATUS" != "Running" ]; then
+            echo "❌ Some Container Apps are not running"
+            exit 1
+          else
+            echo "✅ All Container Apps are running"
+          fi
+      
+      - name: Run health checks
+        run: |
+          # Get API URL
+          API_URL=$(az containerapp show \
+            --name hookverse-api \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query properties.configuration.ingress.fqdn -o tsv)
+          
+          # Health check
+          echo "Testing API health endpoint: https://$API_URL/health"
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://$API_URL/health || echo "000")
+          
+          if [ "$HTTP_CODE" == "200" ]; then
+            echo "✅ API health check passed"
+          else
+            echo "❌ API health check failed (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+      
+      - name: Deployment summary
+        run: |
+          echo "## Azure Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Environment: ${{ inputs.environment || 'staging' }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Image Tag: ${{ inputs.image_tag || 'latest' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Container Apps:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          az containerapp list \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --output table >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Deployment completed successfully**" >> $GITHUB_STEP_SUMMARY
+
+  rollback-azure:
+    name: Rollback Azure Deployment
+    runs-on: ubuntu-latest
+    if: failure() && needs.deploy-azure-infrastructure.result == 'failure'
+    needs: deploy-azure-infrastructure
+    permissions:
+      contents: read
+      id-token: write
+    
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Rollback Container Apps to previous revision
+        run: |
+          echo "⚠️ Deployment failed, initiating rollback..."
+          
+          # Rollback API
+          az containerapp revision list \
+            --name hookverse-api \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "[?properties.active==\`false\`] | [0].name" -o tsv | \
+            xargs -I {} az containerapp revision activate \
+              --revision {} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }}
+          
+          # Rollback Worker
+          az containerapp revision list \
+            --name hookverse-worker \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "[?properties.active==\`false\`] | [0].name" -o tsv | \
+            xargs -I {} az containerapp revision activate \
+              --revision {} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }}
+          
+          # Rollback Dashboard
+          az containerapp revision list \
+            --name hookverse-dashboard \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "[?properties.active==\`false\`] | [0].name" -o tsv | \
+            xargs -I {} az containerapp revision activate \
+              --revision {} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }}
+          
+          echo "✅ Rollback completed"
+      
+      - name: Rollback summary
+        run: |
+          echo "## Rollback Summary" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Deployment failed and was rolled back to previous revision**" >> $GITHUB_STEP_SUMMARY

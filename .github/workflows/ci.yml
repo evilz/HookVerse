@@ -1,0 +1,359 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - '002-aspire-orchestration'
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  ASPIRE_VERSION: '9.5.x'
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for GitVersion
+      
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      
+      - name: Install .NET Aspire workload
+        run: dotnet workload install aspire
+      
+      - name: Verify Aspire workload installation
+        run: |
+          echo "Installed workloads:"
+          dotnet workload list
+          dotnet workload list | grep -q aspire && echo "✅ Aspire workload installed" || (echo "❌ Aspire workload not found" && exit 1)
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Build solution
+        run: dotnet build --no-restore --configuration Release
+      
+      - name: Run unit tests
+        run: dotnet test --no-build --configuration Release --filter "FullyQualifiedName!~Integration" --logger "trx;LogFileName=test-results.trx"
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/test-results.trx'
+      
+      - name: Publish test results
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Test Results
+          path: '**/test-results.trx'
+          reporter: dotnet-trx
+          fail-on-error: true
+  
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: hookverse
+          POSTGRES_PASSWORD: hookverse123
+          POSTGRES_DB: hookverse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      rabbitmq:
+        image: rabbitmq:3-management
+        env:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        ports:
+          - 5672:5672
+          - 15672:15672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      
+      - name: Install .NET Aspire workload
+        run: dotnet workload install aspire
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Build solution
+        run: dotnet build --no-restore --configuration Release
+      
+      - name: Run integration tests
+        run: dotnet test --no-build --configuration Release --filter "FullyQualifiedName~Integration" --logger "trx;LogFileName=integration-test-results.trx"
+        env:
+          ConnectionStrings__DefaultConnection: "Host=localhost;Port=5432;Database=hookverse;Username=hookverse;Password=hookverse123"
+          RabbitMQ__Host: "localhost"
+          RabbitMQ__Port: "5672"
+          RabbitMQ__Username: "guest"
+          RabbitMQ__Password: "guest"
+          Redis__ConnectionString: "localhost:6379"
+      
+      - name: Upload integration test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: '**/integration-test-results.trx'
+  
+  manifest-generation:
+    name: Generate Deployment Manifests
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      
+      - name: Install .NET Aspire workload
+        run: dotnet workload install aspire
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Build AppHost
+        run: dotnet build src/HookVerse.AppHost --no-restore --configuration Release
+      
+      - name: Generate Kubernetes manifests
+        run: |
+          mkdir -p aspire/manifests/kubernetes
+          dotnet run --project src/HookVerse.AppHost \
+            --configuration Release \
+            --no-build \
+            -- --publisher manifest --output-path aspire/manifests/kubernetes
+      
+      - name: Verify Kubernetes manifests generated
+        run: |
+          echo "Generated Kubernetes manifests:"
+          ls -lah aspire/manifests/kubernetes/
+          if [ -z "$(ls -A aspire/manifests/kubernetes/)" ]; then
+            echo "❌ No Kubernetes manifests generated"
+            exit 1
+          else
+            echo "✅ Kubernetes manifests generated successfully"
+          fi
+      
+      - name: Upload Kubernetes manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: kubernetes-manifests
+          path: aspire/manifests/kubernetes/
+          retention-days: 7
+      
+      - name: Upload manifest generation summary
+        run: |
+          echo "## Manifest Generation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Kubernetes Manifests" >> $GITHUB_STEP_SUMMARY
+          echo "Generated manifests:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ls -lh aspire/manifests/kubernetes/ >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+  
+  manifest-validation:
+    name: Validate Deployment Manifests
+    runs-on: ubuntu-latest
+    needs: manifest-generation
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download Kubernetes manifests
+        uses: actions/download-artifact@v4
+        with:
+          name: kubernetes-manifests
+          path: aspire/manifests/kubernetes/
+      
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+      
+      - name: Validate Kubernetes manifests (dry-run)
+        run: |
+          echo "Validating Kubernetes manifests with kubectl..."
+          for file in aspire/manifests/kubernetes/*.yaml aspire/manifests/kubernetes/*.yml; do
+            if [ -f "$file" ]; then
+              echo "Validating: $file"
+              kubectl apply --dry-run=client -f "$file" || (echo "❌ Validation failed for $file" && exit 1)
+            fi
+          done
+          echo "✅ All Kubernetes manifests validated successfully"
+      
+      - name: Install kubeconform (schema validation)
+        run: |
+          curl -L https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz | tar xz
+          sudo mv kubeconform /usr/local/bin/
+      
+      - name: Schema validation with kubeconform
+        run: |
+          echo "Running schema validation with kubeconform..."
+          kubeconform -strict -summary aspire/manifests/kubernetes/ || (echo "❌ Schema validation failed" && exit 1)
+          echo "✅ Schema validation passed"
+      
+      - name: Upload validation summary
+        run: |
+          echo "## Manifest Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **kubectl validation**: PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **kubeconform schema validation**: PASSED" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All Kubernetes manifests are valid and ready for deployment." >> $GITHUB_STEP_SUMMARY
+  
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      
+      - name: Install .NET Aspire workload
+        run: dotnet workload install aspire
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Check code formatting
+        run: dotnet format --verify-no-changes --verbosity diagnostic
+      
+      - name: Run static code analysis
+        run: dotnet build --no-restore --configuration Release /p:TreatWarningsAsErrors=false
+  
+  performance-validation:
+    name: Performance Validation
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      
+      - name: Install .NET Aspire workload
+        run: dotnet workload install aspire
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Build solution
+        run: dotnet build --no-restore --configuration Release
+      
+      - name: Measure manifest generation time
+        run: |
+          echo "Measuring manifest generation performance..."
+          start_time=$(date +%s)
+          dotnet run --project src/HookVerse.AppHost \
+            --configuration Release \
+            --no-build \
+            -- --publisher manifest --output-path obj/perf-test-manifests
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          
+          echo "Manifest generation time: ${duration} seconds"
+          
+          if [ $duration -lt 30 ]; then
+            echo "✅ Manifest generation completed in ${duration}s (target: < 30s)"
+          else
+            echo "⚠️ Manifest generation took ${duration}s (target: < 30s)"
+          fi
+          
+          echo "## Performance Validation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Manifest Generation**: ${duration}s (target: < 30s)" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Clean up performance test artifacts
+        if: always()
+        run: rm -rf obj/perf-test-manifests
+
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [build-and-test, integration-tests, manifest-generation, manifest-validation, code-quality, performance-validation]
+    if: always()
+    
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Job Status" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build and Test**: ${{ needs.build-and-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Integration Tests**: ${{ needs.integration-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Manifest Generation**: ${{ needs.manifest-generation.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Manifest Validation**: ${{ needs.manifest-validation.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Code Quality**: ${{ needs.code-quality.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Performance Validation**: ${{ needs.performance-validation.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.build-and-test.result }}" == "success" ] && \
+             [ "${{ needs.integration-tests.result }}" == "success" ] && \
+             [ "${{ needs.manifest-generation.result }}" == "success" ] && \
+             [ "${{ needs.manifest-validation.result }}" == "success" ]; then
+            echo "✅ **All critical jobs passed** - Ready for deployment" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Some jobs failed** - Review failures before deployment" >> $GITHUB_STEP_SUMMARY
+          fi
