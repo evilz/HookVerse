@@ -506,8 +506,8 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### Final Verification
 
-- [ ] T181 Run full integration test suite and verify all tests pass
-- [ ] T182 Verify all success criteria from spec.md are met
+- [X] T181 Run full integration test suite and verify all tests pass
+- [X] T182 Verify all success criteria from spec.md are met
 - [ ] T183 Perform end-to-end smoke test: start locally → make code change → deploy to staging
 - [ ] T184 Update .github/copilot-instructions.md with Aspire commands and patterns
 
