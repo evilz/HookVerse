@@ -1,5 +1,6 @@
 using HookVerse.Core.Interfaces;
 using HookVerse.Core.Services;
+using HookVerse.Infrastructure.Configuration;
 using HookVerse.Infrastructure.Data;
 using HookVerse.Infrastructure.Extensions;
 using HookVerse.Infrastructure.MessageBus;
@@ -136,6 +137,10 @@ try
     });
 
     var host = builder.Build();
+    
+    // Validate configuration before starting
+    host.ValidateConfiguration();
+    
     await host.RunAsync();
 
     Log.Information("HookVerse Worker stopped gracefully");

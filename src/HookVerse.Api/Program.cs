@@ -1,5 +1,6 @@
 using HookVerse.Api.Extensions;
 using HookVerse.Api.Middleware;
+using HookVerse.Infrastructure.Configuration;
 using HookVerse.Infrastructure.Extensions;
 using Serilog;
 using System.Diagnostics;
@@ -8,6 +9,10 @@ using System.Diagnostics;
 var builder = WebApplication.CreateBuilder(args);
 ConfigureServices(builder);
 var app = builder.Build();
+
+// Validate configuration before starting
+app.ValidateConfiguration();
+
 ConfigurePipeline(app);
 
 try
