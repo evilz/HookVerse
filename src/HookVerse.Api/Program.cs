@@ -74,7 +74,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
     builder.Services.AddBusinessServices();
 
     // Add health checks
-    builder.Services.AddAdvancedHealthChecks(builder.Configuration);
+    builder.Services.AddAdvancedHealthChecks(builder.Configuration, builder.Environment);
 
     // Add exception handling
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

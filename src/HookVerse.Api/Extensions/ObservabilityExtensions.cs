@@ -1,3 +1,7 @@
+using HookVerse.Infrastructure.HealthChecks;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Serilog;
 using Serilog.Events;
 
@@ -36,7 +40,7 @@ public static class ObservabilityExtensions
     /// <summary>
     /// Add health checks for dependencies
     /// </summary>
-    public static IServiceCollection AddAdvancedHealthChecks(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddAdvancedHealthChecks(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         var healthChecks = services.AddHealthChecks();
 
@@ -71,6 +75,14 @@ public static class ObservabilityExtensions
                 },
                 name: "rabbitmq",
                 tags: new[] { "messagebus", "rabbitmq" });
+        }
+
+        // Azure Key Vault health check (Production/Staging only)
+        if (environment.IsProduction() || environment.IsStaging())
+        {
+            healthChecks.AddCheck<KeyVaultHealthCheck>(
+                name: "keyvault",
+                tags: new[] { "azure", "keyvault", "security" });
         }
 
         return services;
