@@ -42,9 +42,93 @@ HookVerse uses OpenTelemetry for:
 
 ## Components
 
-### 1. OpenTelemetry Collector
+### 1. Aspire Dashboard (Local Development)
 
-The OpenTelemetry Collector receives, processes, and exports telemetry data.
+The .NET Aspire Dashboard provides real-time observability for local development without requiring external tools.
+
+**Access**: http://localhost:17191 (automatically starts with AppHost)
+
+**Key Features**:
+- **Resources View**: Monitor all services, containers, and projects
+- **Console Logs**: Real-time console output from all services
+- **Structured Logs**: Filterable, searchable structured logs with log levels
+- **Distributed Traces**: End-to-end request tracing across services
+- **Metrics**: Live metrics for CPU, memory, request rates, and custom metrics
+- **Zero Configuration**: Automatically configured when using ServiceDefaults
+
+**Starting the Dashboard**:
+```powershell
+# Start all services with Aspire orchestration
+dotnet run --project src/HookVerse.AppHost
+
+# Dashboard automatically opens at http://localhost:17191
+# Token displayed in console for authentication
+```
+
+**Dashboard Views**:
+
+1. **Resources Tab**:
+   - Service status (Running/Stopped/Unhealthy)
+   - Container health checks
+   - Resource endpoints (HTTP, gRPC)
+   - Environment variables
+   - Start/Stop individual services
+
+2. **Console Logs Tab**:
+   - Real-time console output
+   - Filter by service name
+   - Search across all logs
+   - Copy/download logs
+
+3. **Structured Logs Tab**:
+   - Formatted JSON logs
+   - Filter by log level (Trace, Debug, Info, Warning, Error, Critical)
+   - Filter by category (namespace)
+   - Search by message content
+   - View log properties and metadata
+
+4. **Traces Tab**:
+   - Distributed traces with timeline visualization
+   - Trace ID correlation
+   - Span details (duration, status, tags)
+   - Filter by service, operation, status
+   - Search by trace ID or operation name
+
+5. **Metrics Tab**:
+   - Live charts for system metrics (CPU, Memory, GC)
+   - HTTP request metrics (rate, duration, errors)
+   - Custom business metrics
+   - Configurable time range
+   - Export to CSV
+
+**Development Workflow**:
+```powershell
+# 1. Start services
+dotnet run --project src/HookVerse.AppHost
+
+# 2. Open dashboard
+# Browser opens automatically to http://localhost:17191
+
+# 3. Make API request
+Invoke-RestMethod -Uri http://localhost:7001/api/v1/webhooks -Method Post -Body $payload
+
+# 4. View in dashboard:
+#    - Traces tab: See end-to-end trace (API → Worker → External)
+#    - Logs tab: Filter to "HookVerse.Api" to see request logs
+#    - Metrics tab: Check request rate and latency
+```
+
+**Telemetry Collection**:
+- Services automatically export to Aspire Dashboard via OTLP
+- No environment variables needed for local development
+- Dashboard stores telemetry in-memory (lost on restart)
+- Dashboard port configurable in AppHost (default: 17191)
+
+**Production Alternative**: Aspire Dashboard is for local development only. Use production-grade tools (Datadog, Application Insights, Grafana) for deployed environments.
+
+### 2. OpenTelemetry Collector (Production)
+
+The OpenTelemetry Collector receives, processes, and exports telemetry data in production environments.
 
 **Key Features**:
 - OTLP receivers (gRPC: 4317, HTTP: 4318)
@@ -56,7 +140,7 @@ The OpenTelemetry Collector receives, processes, and exports telemetry data.
 
 **Configuration**: [`otel-collector-config.yaml`](./otel-collector-config.yaml)
 
-### 2. Instrumentation
+### 3. Instrumentation
 
 HookVerse services use OpenTelemetry .NET SDK for automatic and manual instrumentation.
 
@@ -126,7 +210,7 @@ builder.Services.AddOpenTelemetry()
     });
 ```
 
-### 3. Custom Metrics
+### 4. Custom Metrics
 
 **Webhook Delivery Metrics**:
 ```csharp

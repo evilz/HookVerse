@@ -494,7 +494,7 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 - [X] T172 Update RUNNING.md with Aspire dashboard usage
 - [X] T173 Create DEPLOYMENT.md documenting manifest generation and deployment process
 - [X] T174 Update API-GUIDE.md with service discovery patterns
-- [ ] T175 Document observability configuration in docs/observability.md
+- [X] T175 Document observability configuration in docs/observability.md
 - [ ] T176 Create troubleshooting guide in docs/troubleshooting-aspire.md
 
 #### Performance Validation
