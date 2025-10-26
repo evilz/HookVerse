@@ -448,10 +448,10 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### Integration Tests
 
-- [ ] T155 [US5] Create EnvironmentParityTests.cs in tests/HookVerse.AppHost.Tests/
-- [ ] T156 [US5] Implement test: Local_Uses_Container_Connections to verify Development profile
-- [ ] T157 [US5] Implement test: Production_Uses_Managed_Services to verify Azure profile
-- [ ] T158 [US5] Implement test: Secrets_Not_In_Version_Control to scan for exposed secrets
+- [X] T155 [US5] Create EnvironmentParityTests.cs in tests/HookVerse.AppHost.Tests/
+- [X] T156 [US5] Implement test: Local_Uses_Container_Connections to verify Development profile
+- [X] T157 [US5] Implement test: Production_Uses_Managed_Services to verify Azure profile
+- [X] T158 [US5] Implement test: Secrets_Not_In_Version_Control to scan for exposed secrets
 
 **Completion Criteria**:
 - ✅ All T142-T158 tasks completed
