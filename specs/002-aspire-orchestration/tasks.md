@@ -423,10 +423,10 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### Connection String Abstraction
 
-- [ ] T142 [US5] Implement connection string provider interface in src/HookVerse.Infrastructure/Configuration/IConnectionStringProvider.cs
-- [ ] T143 [US5] Implement LocalConnectionStringProvider for container-based connections
-- [ ] T144 [US5] Implement AzureConnectionStringProvider for managed service connections
-- [ ] T145 [US5] Register appropriate provider based on environment in Program.cs
+- [X] T142 [US5] Implement connection string provider interface in src/HookVerse.Infrastructure/Configuration/IConnectionStringProvider.cs
+- [X] T143 [US5] Implement LocalConnectionStringProvider for container-based connections
+- [X] T144 [US5] Implement AzureConnectionStringProvider for managed service connections
+- [X] T145 [US5] Register appropriate provider based on environment in Program.cs
 
 #### Secret Management Configuration
 

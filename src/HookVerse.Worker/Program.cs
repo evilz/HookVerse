@@ -1,6 +1,7 @@
 using HookVerse.Core.Interfaces;
 using HookVerse.Core.Services;
 using HookVerse.Infrastructure.Data;
+using HookVerse.Infrastructure.Extensions;
 using HookVerse.Infrastructure.MessageBus;
 using HookVerse.Infrastructure.Metrics;
 using HookVerse.Infrastructure.Repositories;
@@ -33,6 +34,9 @@ try
 
     // Add Serilog
     builder.Services.AddSerilog(Log.Logger);
+
+    // Add connection string provider (environment-aware)
+    builder.Services.AddConnectionStringProvider(builder.Configuration, builder.Environment);
 
     // Add Database - Use Aspire-injected connection string
     var connectionString = builder.Configuration.GetConnectionString("webhookdb")

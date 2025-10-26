@@ -1,5 +1,6 @@
 using HookVerse.Api.Extensions;
 using HookVerse.Api.Middleware;
+using HookVerse.Infrastructure.Extensions;
 using Serilog;
 using System.Diagnostics;
 
@@ -51,6 +52,9 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
     // Add CORS
     builder.Services.AddCorsConfiguration();
+
+    // Add connection string provider (environment-aware)
+    builder.Services.AddConnectionStringProvider(builder.Configuration, builder.Environment);
 
     // Add database and repositories
     builder.Services.AddDatabase(builder.Configuration);
