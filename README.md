@@ -216,6 +216,165 @@ HookVerse uses Aspire's conditional resource configuration:
 - **Production** (Azure): Uses managed services (Azure SQL, Service Bus, Redis Cache)
 - **No Code Changes**: Same codebase automatically adapts via AppHost configuration
 
+#### Configuration Priority
+
+Configuration sources are applied in the following order (later sources override earlier ones):
+
+1. **appsettings.json** - Base configuration shared across all environments
+2. **appsettings.{Environment}.json** - Environment-specific settings (Development, Staging, Production)
+3. **User Secrets** - Local development secrets (Development only, never committed)
+4. **Environment Variables** - Runtime overrides (recommended for production)
+5. **Azure Key Vault** - Production secrets (via environment variables with Key Vault references)
+
+#### Environment Variable Overrides
+
+**Connection Strings** (use `:` or `__` as separator):
+```bash
+# PostgreSQL
+ConnectionStrings__postgres="Host=myserver;Database=hookverse;..."
+ConnectionStrings:postgres="Host=myserver;Database=hookverse;..."
+
+# Azure SQL Database (Production/Staging)
+ConnectionStrings__AzureSqlDatabase="Server=tcp:myserver.database.windows.net;..."
+
+# RabbitMQ
+ConnectionStrings__rabbitmq="amqp://user:pass@host:5672"
+
+# Azure Service Bus (Production/Staging)
+ConnectionStrings__AzureServiceBus="Endpoint=sb://mynamespace.servicebus.windows.net;..."
+
+# Redis
+ConnectionStrings__redis="localhost:6379,password=secret"
+
+# Azure Redis Cache (Production/Staging)
+ConnectionStrings__AzureRedisCache="mycache.redis.cache.windows.net:6380,password=..."
+```
+
+**Logging Levels**:
+```bash
+# Change default log level
+Logging__LogLevel__Default="Debug"
+
+# Change specific namespace log level
+Logging__LogLevel__HookVerse="Information"
+Logging__LogLevel__Microsoft.EntityFrameworkCore="Warning"
+```
+
+**OpenTelemetry Configuration**:
+```bash
+# Enable OTLP exporter (Datadog, Application Insights, etc.)
+OTEL_EXPORTER_OTLP_ENDPOINT="https://api.datadoghq.com:4317"
+OTEL_EXPORTER_OTLP_HEADERS="dd-api-key=YOUR_API_KEY"
+OTEL_RESOURCE_ATTRIBUTES="service.name=hookverse-api,env=production"
+
+# Or use Application Insights
+APPLICATIONINSIGHTS_CONNECTION_STRING="InstrumentationKey=...;IngestionEndpoint=..."
+```
+
+**Azure Key Vault** (Production):
+```bash
+# Key Vault configuration
+Azure__KeyVault__Name="kv-hookverse-prod"
+Azure__KeyVault__VaultUri="https://kv-hookverse-prod.vault.azure.net/"
+
+# Connection strings with Key Vault references
+ConnectionStrings__AzureSqlDatabase="@Microsoft.KeyVault(SecretUri=https://kv-hookverse-prod.vault.azure.net/secrets/SqlConnectionString/)"
+ConnectionStrings__AzureServiceBus="@Microsoft.KeyVault(SecretUri=https://kv-hookverse-prod.vault.azure.net/secrets/ServiceBusConnectionString/)"
+```
+
+**API Settings**:
+```bash
+# Dashboard API endpoint
+ApiSettings__BaseUrl="https://api.hookverse.com"
+ApiSettings__TimeoutSeconds="60"
+
+# CORS origins
+Cors__AllowedOrigins__0="https://dashboard.hookverse.com"
+Cors__AllowedOrigins__1="https://www.hookverse.com"
+```
+
+**Worker Settings**:
+```bash
+# Webhook delivery worker configuration
+WorkerSettings__MaxConcurrentDeliveries="100"
+WorkerSettings__BatchSize="200"
+WorkerSettings__PollingIntervalSeconds="1"
+
+# Webhook delivery settings
+WebhookDelivery__MaxRetries="10"
+WebhookDelivery__RetryDelaySeconds="15"
+WebhookDelivery__EnableCircuitBreaker="true"
+```
+
+**Azure Container Apps Example**:
+```bash
+# Set environment variables in Container App
+az containerapp update \
+  --name hookverse-api \
+  --resource-group hookverse \
+  --set-env-vars \
+    "ConnectionStrings__AzureSqlDatabase=secretref:sql-connection" \
+    "ConnectionStrings__AzureServiceBus=secretref:servicebus-connection" \
+    "OTEL_EXPORTER_OTLP_ENDPOINT=https://api.datadoghq.com:4317" \
+    "Logging__LogLevel__Default=Information"
+
+# Set secrets (for sensitive values)
+az containerapp secret set \
+  --name hookverse-api \
+  --resource-group hookverse \
+  --secrets \
+    sql-connection="Server=tcp:..." \
+    servicebus-connection="Endpoint=sb:..."
+```
+
+**Kubernetes ConfigMap/Secret Example**:
+```yaml
+# ConfigMap for non-sensitive configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hookverse-config
+data:
+  Logging__LogLevel__Default: "Information"
+  WorkerSettings__MaxConcurrentDeliveries: "100"
+  OTEL_RESOURCE_ATTRIBUTES: "service.name=hookverse-api,env=production"
+
+---
+# Secret for sensitive configuration
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hookverse-secrets
+type: Opaque
+stringData:
+  ConnectionStrings__AzureSqlDatabase: "Server=tcp:..."
+  ConnectionStrings__AzureServiceBus: "Endpoint=sb:..."
+  OTEL_EXPORTER_OTLP_HEADERS: "dd-api-key=YOUR_API_KEY"
+```
+
+**Local Development with User Secrets**:
+```bash
+# Initialize user secrets (one-time)
+dotnet user-secrets init --project src/HookVerse.AppHost
+
+# Set secrets for local development
+dotnet user-secrets set "ConnectionStrings:postgres" "Host=localhost;..." --project src/HookVerse.AppHost
+dotnet user-secrets set "ExternalApi:DatadogApiKey" "YOUR_KEY" --project src/HookVerse.AppHost
+
+# List all secrets
+dotnet user-secrets list --project src/HookVerse.AppHost
+
+# See template: aspire/templates/user-secrets.template.json
+```
+
+**Verification**:
+```bash
+# Verify configuration is loaded correctly
+# Check application logs on startup for configuration values
+# Or use health check endpoint to validate settings
+curl http://localhost:7001/health
+```
+
 ## 🧪 Testing
 
 ```bash

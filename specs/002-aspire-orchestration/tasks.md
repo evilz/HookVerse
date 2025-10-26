@@ -436,10 +436,10 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### Environment-Specific Configuration
 
-- [ ] T149 [US5] Create appsettings.Development.json with container connection defaults
-- [ ] T150 [US5] Create appsettings.Staging.json with Azure managed service defaults
-- [ ] T151 [US5] Create appsettings.Production.json with Azure managed service defaults
-- [ ] T152 [US5] Document environment variable overrides in README.md
+- [X] T149 [US5] Create appsettings.Development.json with container connection defaults
+- [X] T150 [US5] Create appsettings.Staging.json with Azure managed service defaults
+- [X] T151 [US5] Create appsettings.Production.json with Azure managed service defaults
+- [X] T152 [US5] Document environment variable overrides in README.md
 
 #### Configuration Validation
 
