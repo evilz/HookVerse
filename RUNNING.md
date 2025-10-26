@@ -1,13 +1,13 @@
 # HookVerse - Running and Debugging Guide
 
-**Last Updated**: October 19, 2025  
-**Version**: 1.0.0
+**Last Updated**: October 26, 2025  
+**Version**: 2.0.0 (Aspire Edition)
 
 ## Table of Contents
 
 1. [Prerequisites](#prerequisites)
 2. [Quick Start](#quick-start)
-3. [Running the Application](#running-the-application)
+3. [Using the Aspire Dashboard](#using-the-aspire-dashboard)
 4. [Debugging in Visual Studio Code](#debugging-in-visual-studio-code)
 5. [Debugging in Visual Studio](#debugging-in-visual-studio)
 6. [Using the API](#using-the-api)
@@ -21,17 +21,14 @@
 ### Required Software
 
 - **.NET 10 SDK** (preview) - [Download](https://dotnet.microsoft.com/download/dotnet/10.0)
+- **.NET Aspire workload** - Install with: `dotnet workload install aspire`
 - **Docker Desktop** - [Download](https://www.docker.com/products/docker-desktop)
-- **PostgreSQL 16** (via Docker or local install)
-- **RabbitMQ 3.13** (via Docker or local install)
-- **Redis 7** (via Docker or local install)
 
 ### Optional Tools
 
 - **Visual Studio Code** with C# Dev Kit extension
-- **Visual Studio 2022** (17.8+)
+- **Visual Studio 2022** (17.8+) with Aspire support
 - **Postman** or **Thunder Client** for API testing
-- **pgAdmin 4** for database management (included in Docker setup)
 
 ### Verify Installation
 
@@ -40,9 +37,12 @@
 dotnet --version
 # Should output: 10.0.xxx
 
+# Check Aspire workload
+dotnet workload list | findstr aspire
+# Should show: aspire
+
 # Check Docker
 docker --version
-docker compose version
 ```
 
 ---
@@ -62,136 +62,273 @@ dotnet restore
 dotnet build
 ```
 
-### 2. Start Infrastructure Services
-
-**Option A: Using Docker Compose (Recommended)**
+### 2. Start Everything with Aspire
 
 ```powershell
-# Start all services (PostgreSQL, RabbitMQ, Redis)
-.\start-services.ps1
-
-# Or manually:
-docker compose up -d
-
-# Verify services are running
-docker compose ps
+# Start AppHost - this starts everything!
+dotnet run --project src\HookVerse.AppHost
 ```
 
-Services will be available at:
-- **PostgreSQL**: localhost:5432
-- **RabbitMQ Management**: http://localhost:15672 (guest/guest)
-- **Redis**: localhost:6379
-- **pgAdmin**: http://localhost:5050 (admin@hookverse.local/admin)
+That's it! Aspire will automatically:
+- ✅ Pull and start PostgreSQL, RabbitMQ, and Redis containers
+- ✅ Build and launch API, Worker, and Dashboard services  
+- ✅ Configure service discovery and connection strings
+- ✅ Set up OpenTelemetry observability
+- ✅ Open the Aspire dashboard at http://localhost:15888
 
-**Option B: Local Services**
+**First-time startup**: 2-3 minutes (downloading images)  
+**Subsequent startups**: 30-60 seconds
 
-If you prefer local installations, ensure these are running:
-- PostgreSQL on port 5432
-- RabbitMQ on port 5672 (management on 15672)
-- Redis on port 6379
+### 3. Access Your Services
 
-### 3. Apply Database Migrations
+Once the AppHost is running:
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| **Aspire Dashboard** | http://localhost:15888 | Orchestration, logs, traces, metrics |
+| **HookVerse API** | http://localhost:5000 | REST API endpoints |
+| **API Swagger** | http://localhost:5000/swagger | API documentation |
+| **HookVerse Dashboard** | http://localhost:7000 | Webhook monitoring UI |
+| **RabbitMQ Management** | http://localhost:15672 | Message queue admin (guest/guest) |
+
+### 4. Apply Database Migrations (First Time Only)
 
 ```powershell
-# From Infrastructure project
-cd src\HookVerse.Infrastructure
+# Ensure AppHost is running first (for database connection)
 
-# Create/update database
-dotnet ef database update --startup-project ..\HookVerse.Api
-
-# Verify migration
-dotnet ef migrations list --startup-project ..\HookVerse.Api
-```
-
-### 4. Run the Applications
-
-**Terminal 1: API Server**
-
-```powershell
-cd src\HookVerse.Api
-dotnet run
-```
-
-API will start at:
-- **HTTPS**: https://localhost:7001
-- **HTTP**: http://localhost:5001
-- **Swagger UI**: https://localhost:7001/swagger
-
-**Terminal 2: Background Worker**
-
-```powershell
-cd src\HookVerse.Worker
-dotnet run
-```
-
-Worker will connect to RabbitMQ and process webhook deliveries.
-
-**Terminal 3: Dashboard (Optional)**
-
-```powershell
-cd src\HookVerse.Dashboard
-dotnet run
-```
-
-Dashboard will start at:
-- **HTTPS**: https://localhost:7002
-- **HTTP**: http://localhost:5002
-
+# In a new terminal:
 ---
 
-## Running the Application
+## Using the Aspire Dashboard
 
-### Using .NET CLI
+The Aspire Dashboard (http://localhost:15888) is your command center for monitoring and managing all services.
 
-**Run All Projects Simultaneously (PowerShell)**
+### Dashboard Features
 
-```powershell
-# Create a multi-run script
-$api = Start-Process pwsh -ArgumentList "-NoExit", "-Command", "cd src\HookVerse.Api; dotnet run" -PassThru
-$worker = Start-Process pwsh -ArgumentList "-NoExit", "-Command", "cd src\HookVerse.Worker; dotnet run" -PassThru
-$dashboard = Start-Process pwsh -ArgumentList "-NoExit", "-Command", "cd src\HookVerse.Dashboard; dotnet run" -PassThru
+#### 1. Resources View
 
-Write-Host "All services started!"
-Write-Host "API: https://localhost:7001"
-Write-Host "Dashboard: https://localhost:7002"
-Write-Host "Press Ctrl+C to stop monitoring..."
+**What it shows**: All running services and containers with their status
 
-# Wait and cleanup
-try {
-    while ($true) { Start-Sleep -Seconds 1 }
-} finally {
-    Stop-Process -Id $api.Id -ErrorAction SilentlyContinue
-    Stop-Process -Id $worker.Id -ErrorAction SilentlyContinue
-    Stop-Process -Id $dashboard.Id -ErrorAction SilentlyContinue
-}
+Features:
+- Real-time health status of each resource
+- Start/stop/restart individual resources
+- View resource allocation (CPU, memory)
+- Quick access to logs and environment variables
+
+**How to use**:
+1. Navigate to http://localhost:15888
+2. Click on **Resources** tab (default view)
+3. See all 6 resources:
+   - hookverse-api (ASP.NET Core)
+   - hookverse-worker (Background Service)
+   - hookverse-dashboard (Blazor App)
+   - postgres (PostgreSQL container)
+   - rabbitmq (RabbitMQ container)
+   - redis (Redis container)
+
+#### 2. Console Logs
+
+**What it shows**: Real-time streaming logs from all services
+
+Features:
+- Live log streaming with auto-scroll
+- Filter by service name
+- Search within logs
+- Copy logs to clipboard
+- Export logs to file
+
+**How to use**:
+1. Go to **Console Logs** tab
+2. Select a resource from the dropdown (or view all)
+3. Use the search box to filter log messages
+4. Click **Copy** or **Export** to save logs
+
+#### 3. Structured Logs
+
+**What it shows**: Queryable, filterable structured log data
+
+Features:
+- Advanced filtering by:
+  - Log level (Trace, Debug, Info, Warning, Error, Critical)
+  - Category (e.g., `HookVerse.Api.Controllers.WebhooksController`)
+  - Time range
+  - Correlation ID
+- Full log message details
+- Stack traces for errors
+- JSON property inspection
+
+**How to use**:
+1. Go to **Structured Logs** tab
+2. Set filters:
+   - Resource: Select specific service
+   - Level: Choose log level
+   - Time: Select time range
+3. Click on any log entry to see full details
+4. Use correlation ID to trace requests across services
+
+#### 4. Traces
+
+**What it shows**: Distributed tracing across all services
+
+Features:
+- End-to-end request visualization
+- Span timeline showing service call hierarchy
+- Performance metrics per span
+- Correlation with logs
+- Identify bottlenecks and slow operations
+
+**How to use**:
+1. Go to **Traces** tab
+2. Browse recent traces or search by:
+   - Trace ID
+   - Operation name
+   - Duration
+   - Status
+3. Click on a trace to see the full waterfall diagram
+4. Inspect individual spans for timing details
+5. Click "View Logs" to see related log entries
+
+**Example trace flow**:
+```
+HTTP POST /api/webhooks
+├─ API: WebhooksController.Create  (12ms)
+├─ API: WebhookRepository.CreateAsync  (8ms)
+│  └─ PostgreSQL: INSERT INTO Webhooks  (5ms)
+└─ API: RabbitMQ.Publish  (3ms)
+    └─ Worker: DeliveryConsumer.Consume  (45ms)
+       └─ Worker: HttpClient.SendAsync  (42ms)
 ```
 
-**Run with Watch Mode (Auto-reload on changes)**
+#### 5. Metrics
 
-```powershell
-# API with hot reload
-cd src\HookVerse.Api
-dotnet watch run
+**What it shows**: Real-time performance metrics and counters
 
-# Worker with hot reload
-cd src\HookVerse.Worker
-dotnet watch run
-```
+Features:
+- CPU and memory usage per service
+- Request rates and latencies
+- Database query performance
+- Custom business metrics
+- Historical charts
+
+**How to use**:
+1. Go to **Metrics** tab
+2. Select a resource
+3. Choose metric category:
+   - **System**: CPU, memory, threads
+   - **HTTP**: Request count, duration, status codes
+   - **Database**: Query count, connection pool
+   - **Custom**: Application-specific metrics
+4. Adjust time window for historical data
+
+### Common Dashboard Tasks
+
+#### Monitor a New Webhook Delivery
+
+1. Open **Traces** tab
+2. Send a POST request to `/api/webhooks`
+3. Find the new trace (sorted by recency)
+4. Click to see the full flow:
+   - API receives request
+   - Database insert
+   - RabbitMQ publish
+   - Worker processing
+   - HTTP delivery to destination
+
+#### Troubleshoot a Failed Delivery
+
+1. Go to **Structured Logs** tab
+2. Filter:
+   - Resource: `hookverse-worker`
+   - Level: `Error`
+   - Time: Last 1 hour
+3. Find the error log
+4. Click to view details and stack trace
+5. Note the correlation ID
+6. Go to **Traces** tab and search by correlation ID
+7. See the full request flow to identify the failure point
+
+#### Check Service Health
+
+1. Go to **Resources** tab
+2. Check the **State** column:
+   - 🟢 **Running**: Service is healthy
+   - 🟡 **Starting**: Service is initializing
+   - 🔴 **Stopped**: Service has stopped
+   - ⚠️ **Unhealthy**: Health check failing
+3. Click on an unhealthy resource
+4. View **Console Logs** for error messages
+5. Check **Environment** tab for configuration issues
+
+#### View Database Queries
+
+1. Go to **Traces** tab
+2. Filter by **Name**: `db.*` or `EntityFramework*`
+3. Click on a trace to see:
+   - SQL query text
+   - Execution time
+   - Parameter values
+   - Stack trace showing which code triggered the query
 
 ---
 
 ## Debugging in Visual Studio Code
 
-### 1. Launch Configuration
+### 1. Debugging with Aspire AppHost
 
-Create `.vscode/launch.json`:
+The recommended way to debug is through the AppHost, which provides full orchestration.
+
+**Launch Configuration** (`.vscode/launch.json`):
 
 ```json
 {
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch API",
+      "name": "Debug Aspire AppHost",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/HookVerse.AppHost/bin/Debug/net10.0/HookVerse.AppHost.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/HookVerse.AppHost",
+      "stopAtEntry": false,
+      "env": {
+        "DOTNET_ENVIRONMENT": "Development"
+      },
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "Now listening on: (http://[^\\s]+)",
+        "uriFormat": "%s"
+      }
+    }
+  ]
+}
+```
+
+**How to debug**:
+1. Set breakpoints in your API, Worker, or Dashboard code
+2. Press **F5** or click **Run > Start Debugging**
+3. AppHost starts all services
+4. Aspire Dashboard opens automatically
+5. Trigger your code path (e.g., POST to `/api/webhooks`)
+6. VS Code breaks at your breakpoint
+
+**Advantages**:
+- All services running together
+- Full observability through Aspire Dashboard
+- Realistic environment with service discovery
+- Container dependencies managed automatically
+
+### 2. Debugging Individual Services
+
+If you need to debug just one service without AppHost:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug API Only",
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build",
@@ -199,20 +336,17 @@ Create `.vscode/launch.json`:
       "args": [],
       "cwd": "${workspaceFolder}/src/HookVerse.Api",
       "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5000"
+      },
       "serverReadyAction": {
         "action": "openExternally",
         "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
-      },
-      "env": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "https://localhost:7001;http://localhost:5001"
-      },
-      "sourceFileMap": {
-        "/Views": "${workspaceFolder}/Views"
       }
     },
     {
-      "name": "Launch Worker",
+      "name": "Debug Worker Only",
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build",
@@ -225,7 +359,7 @@ Create `.vscode/launch.json`:
       }
     },
     {
-      "name": "Launch Dashboard",
+      "name": "Debug Dashboard Only",
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "build",
@@ -233,29 +367,22 @@ Create `.vscode/launch.json`:
       "args": [],
       "cwd": "${workspaceFolder}/src/HookVerse.Dashboard",
       "stopAtEntry": false,
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:7000"
+      },
       "serverReadyAction": {
         "action": "openExternally",
         "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
-      },
-      "env": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "ASPNETCORE_URLS": "https://localhost:7002;http://localhost:5002"
       }
-    }
-  ],
-  "compounds": [
-    {
-      "name": "All Services",
-      "configurations": ["Launch API", "Launch Worker", "Launch Dashboard"],
-      "stopAll": true
     }
   ]
 }
 ```
 
-### 2. Tasks Configuration
+**Note**: When debugging individual services, you still need AppHost running in a separate terminal for infrastructure (PostgreSQL, RabbitMQ, Redis).
 
-Create `.vscode/tasks.json`:
+### 3. Build Tasks (`.vscode/tasks.json`)
 
 ```json
 {
@@ -274,584 +401,475 @@ Create `.vscode/tasks.json`:
       "problemMatcher": "$msCompile"
     },
     {
-      "label": "watch-api",
+      "label": "Start AppHost",
       "command": "dotnet",
       "type": "process",
       "args": [
-        "watch",
         "run",
         "--project",
-        "${workspaceFolder}/src/HookVerse.Api"
+        "${workspaceFolder}/src/HookVerse.AppHost"
       ],
-      "problemMatcher": "$msCompile"
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^.*$",
+          "file": 1,
+          "location": 2,
+          "message": 3
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "^.*Building.*$",
+          "endsPattern": "^.*Application started.*$"
+        }
+      }
     }
   ]
 }
 ```
 
-### 3. Start Debugging
-
-1. Press `F5` or click "Run and Debug" in sidebar
-2. Select "All Services" from dropdown to run everything
-3. Or select individual services (API, Worker, Dashboard)
-4. Set breakpoints by clicking in the gutter (left of line numbers)
-5. Use Debug Console to inspect variables
-
-**Debug Shortcuts:**
-- `F5` - Continue/Start
-- `F10` - Step Over
-- `F11` - Step Into
-- `Shift+F11` - Step Out
-- `Ctrl+Shift+F5` - Restart
-- `Shift+F5` - Stop
-
 ---
 
 ## Debugging in Visual Studio
 
-### 1. Open Solution
+### 1. Debug with Aspire AppHost
 
-```powershell
-# Open Visual Studio
-start HookVerse.sln
-```
+**Steps**:
+1. Open `HookVerse.sln` in Visual Studio 2022
+2. Set `HookVerse.AppHost` as the startup project (right-click → Set as Startup Project)
+3. Set breakpoints in any service (API, Worker, Dashboard)
+4. Press **F5** or click **Start Debugging**
+5. Visual Studio will:
+   - Build all projects
+   - Start AppHost
+   - Launch Aspire Dashboard in browser
+   - Attach debugger to all services
 
-### 2. Configure Multiple Startup Projects
+### 2. Debug Multiple Projects Simultaneously
 
-1. Right-click Solution → **Properties**
+**Configure Multiple Startup Projects**:
+1. Right-click solution → **Properties**
 2. Select **Multiple startup projects**
-3. Set these to **Start**:
-   - HookVerse.Api
-   - HookVerse.Worker
-   - HookVerse.Dashboard (optional)
+3. Set **Start** for:
+   - HookVerse.AppHost
+   - HookVerse.Api (optional - if you want F10/F11 stepping)
+   - HookVerse.Worker (optional)
+4. Click **OK**
+5. Press **F5**
 
-### 3. Start Debugging
+### 3. Attach to Running Process
 
-1. Press `F5` or click "Start"
-2. All configured projects will launch
-3. Set breakpoints by clicking in margin
-4. Use Immediate Window (`Ctrl+Alt+I`) for runtime evaluation
-
-**Debug Windows:**
-- **Locals** (`Ctrl+Alt+V, L`) - Variables in current scope
-- **Watch** (`Ctrl+Alt+W, 1-4`) - Watch expressions
-- **Call Stack** (`Ctrl+Alt+C`) - Execution stack
-- **Output** (`Ctrl+Alt+O`) - Application logs
+If AppHost is already running:
+1. **Debug** → **Attach to Process** (Ctrl+Alt+P)
+2. Filter by "HookVerse"
+3. Select the service process (e.g., `HookVerse.Api.exe`)
+4. Click **Attach**
 
 ---
 
 ## Using the API
 
-### 1. Access Swagger UI
+### Swagger UI
 
-Open browser to: https://localhost:7001/swagger
+Once the AppHost is running, access Swagger at: http://localhost:5000/swagger
 
-Swagger provides interactive API documentation with "Try it out" functionality.
+**Key Endpoints**:
 
-### 2. API Endpoints Overview
-
-#### **Subscribers** (`/api/v1/subscribers`)
-
+#### Create a Webhook
 ```http
-# Create a subscriber
-POST /api/v1/subscribers
+POST /api/webhooks
 Content-Type: application/json
 
 {
-  "name": "Acme Corp",
-  "apiKeyPrefix": "acme",
-  "webhookSecret": "32-character-secret-key-here!!!",
-  "retentionDays": 30
-}
-
-# Response: 201 Created
-{
-  "id": "guid",
-  "name": "Acme Corp",
-  "apiKey": "acme_live_abc123...",
-  "isActive": true,
-  "createdAt": "2025-10-19T10:00:00Z"
-}
-```
-
-#### **Event Types** (`/api/v1/event-types`)
-
-```http
-# Create an event type
-POST /api/v1/event-types
-Content-Type: application/json
-
-{
-  "name": "user.created",
-  "description": "Triggered when a new user is created",
-  "subscriberId": "subscriber-guid-here"
-}
-
-# Attach JSON schema
-PUT /api/v1/event-types/user.created/schema
-Content-Type: application/json
-
-{
-  "format": "JsonSchema",
-  "content": "{\"type\":\"object\",\"properties\":{\"userId\":{\"type\":\"string\"},\"email\":{\"type\":\"string\"}}}",
-  "description": "User creation event schema",
-  "version": 1,
+  "name": "My Test Webhook",
+  "url": "https://webhook.site/unique-id",
+  "events": ["user.created", "order.placed"],
+  "secret": "my-secret-key",
   "isActive": true
 }
 ```
 
-#### **Subscriptions** (`/api/v1/subscriptions`)
-
+#### List Webhooks
 ```http
-# Create a subscription
-POST /api/v1/subscriptions
+GET /api/webhooks?pageNumber=1&pageSize=20
+```
+
+#### Get Webhook by ID
+```http
+GET /api/webhooks/{id}
+```
+
+#### Update Webhook
+```http
+PUT /api/webhooks/{id}
 Content-Type: application/json
 
 {
-  "eventTypeId": "event-type-guid",
-  "endpointUrl": "https://your-app.com/webhooks",
-  "secret": "your-webhook-signing-secret-32-chars",
-  "authType": "None",
-  "description": "Production webhook endpoint",
-  "timeoutSeconds": 30,
-  "maxRetries": 5
+  "name": "Updated Webhook",
+  "url": "https://new-url.example.com",
+  "isActive": true
 }
 ```
 
-#### **Webhooks** (`/api/v1/webhooks`)
-
+#### Delete Webhook
 ```http
-# Send a webhook
-POST /api/v1/webhooks
+DELETE /api/webhooks/{id}
+```
+
+#### Trigger a Test Delivery
+```http
+POST /api/webhooks/{id}/test
 Content-Type: application/json
 
 {
-  "eventTypeId": "event-type-guid",
-  "subscriberId": "subscriber-guid",
-  "payload": "{\"userId\":\"123\",\"email\":\"user@example.com\"}",
-  "scheduledFor": null,
-  "metadata": "{\"source\":\"api\"}"
-}
-
-# Response: 202 Accepted
-{
-  "id": "webhook-event-guid",
-  "traceId": "abc123...",
-  "status": "accepted",
-  "createdAt": "2025-10-19T10:05:00Z"
+  "eventType": "test.event",
+  "payload": {
+    "message": "This is a test"
+  }
 }
 ```
 
-### 3. Using cURL
-
-```bash
-# Set variables
-API_URL="https://localhost:7001"
-API_KEY="your-api-key-here"
-
-# Create subscriber
-curl -X POST "$API_URL/api/v1/subscribers" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: $API_KEY" \
-  -d '{
-    "name": "Test Subscriber",
-    "apiKeyPrefix": "test",
-    "webhookSecret": "test-secret-32-characters-long!",
-    "retentionDays": 30
-  }' \
-  --insecure
-
-# Send webhook
-curl -X POST "$API_URL/api/v1/webhooks" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: $API_KEY" \
-  -d '{
-    "eventTypeId": "event-type-guid",
-    "subscriberId": "subscriber-guid",
-    "payload": "{\"test\":\"data\"}"
-  }' \
-  --insecure
-```
-
-### 4. Using PowerShell
+### Using cURL
 
 ```powershell
-# Set variables
-$apiUrl = "https://localhost:7001"
-$headers = @{
-    "Content-Type" = "application/json"
-    "X-API-Key" = "your-api-key-here"
-}
+# Create webhook
+curl -X POST http://localhost:5000/api/webhooks `
+  -H "Content-Type: application/json" `
+  -d '{"name":"Test Webhook","url":"https://webhook.site/abc123","events":["test.event"]}'
 
-# Create subscriber
-$body = @{
-    name = "Test Subscriber"
-    apiKeyPrefix = "test"
-    webhookSecret = "test-secret-32-characters-long!"
-    retentionDays = 30
-} | ConvertTo-Json
+# List webhooks
+curl http://localhost:5000/api/webhooks
 
-$response = Invoke-RestMethod -Uri "$apiUrl/api/v1/subscribers" `
-    -Method Post `
-    -Headers $headers `
-    -Body $body `
-    -SkipCertificateCheck
+# Get webhook
+curl http://localhost:5000/api/webhooks/1
 
-Write-Host "Created subscriber: $($response.id)"
-
-# Send webhook
-$webhookBody = @{
-    eventTypeId = "event-type-guid"
-    subscriberId = "subscriber-guid"
-    payload = '{"userId":"123","email":"user@example.com"}'
-} | ConvertTo-Json
-
-$webhookResponse = Invoke-RestMethod -Uri "$apiUrl/api/v1/webhooks" `
-    -Method Post `
-    -Headers $headers `
-    -Body $webhookBody `
-    -SkipCertificateCheck
-
-Write-Host "Webhook sent with TraceId: $($webhookResponse.traceId)"
+# Delete webhook
+curl -X DELETE http://localhost:5000/api/webhooks/1
 ```
 
-### 5. Testing with Postman
+### Using PowerShell
 
-**Import Collection:**
+```powershell
+# Create webhook
+$body = @{
+    name = "Test Webhook"
+    url = "https://webhook.site/abc123"
+    events = @("test.event")
+    secret = "my-secret"
+    isActive = $true
+} | ConvertTo-Json
 
-1. Open Postman
-2. Click **Import**
-3. Create new collection "HookVerse API"
-4. Add environment variables:
-   - `base_url`: https://localhost:7001
-   - `api_key`: your-api-key
+Invoke-RestMethod -Uri "http://localhost:5000/api/webhooks" `
+    -Method Post `
+    -ContentType "application/json" `
+    -Body $body
 
-**Example Requests:**
+# List webhooks
+Invoke-RestMethod -Uri "http://localhost:5000/api/webhooks"
 
-```json
-// Collection structure:
-HookVerse API/
-├── Subscribers/
-│   ├── Create Subscriber (POST)
-│   ├── List Subscribers (GET)
-│   └── Get Subscriber (GET)
-├── Event Types/
-│   ├── Create Event Type (POST)
-│   ├── Attach Schema (PUT)
-│   └── List Event Types (GET)
-├── Subscriptions/
-│   ├── Create Subscription (POST)
-│   ├── List Subscriptions (GET)
-│   └── Update Subscription (PUT)
-└── Webhooks/
-    ├── Send Webhook (POST)
-    └── Get Webhook Status (GET)
+# Get webhook
+$webhook = Invoke-RestMethod -Uri "http://localhost:5000/api/webhooks/1"
+$webhook | ConvertTo-Json
+
+# Delete webhook
+Invoke-RestMethod -Uri "http://localhost:5000/api/webhooks/1" -Method Delete
 ```
 
 ---
 
 ## Using the Dashboard
 
-### 1. Access Dashboard
+Access the HookVerse monitoring dashboard at: http://localhost:7000
 
-**Development Mode** (authentication disabled):
-```
-https://localhost:7002/
-```
+### Features
 
-**Production Mode** (with API key):
-```
-https://localhost:7002/?apikey=your-api-key
-```
+#### 1. Webhook Overview
+- Total webhooks registered
+- Active vs inactive webhooks
+- Recent webhook creations
 
-### 2. Dashboard Pages
+#### 2. Delivery Statistics
+- Total deliveries attempted
+- Success rate
+- Failure rate
+- Average delivery time
 
-- **Home** (`/`) - Welcome page
-- **Dashboard** (`/dashboard`) - Analytics overview with metrics
-  - Total webhooks count
-  - Success rate percentage
-  - Average response time
-  - Top event types by volume
-  
-- **Webhook Logs** (`/webhooks`) - Searchable webhook history
-  - TraceId, Event Type, Created Date, Status, Attempts
-  - Real-time updates via SignalR
-  
-- **Webhook Details** (`/webhooks/{id}`) - Individual webhook inspection
-  - Full payload viewer
-  - Delivery attempt timeline
-  - Request/response details
+#### 3. Real-time Activity
+- Live delivery feed
+- Recent successes and failures
+- Retry attempts
 
-### 3. Authentication (T162)
-
-**Development**: Authentication is disabled by default
-```json
-// appsettings.Development.json
-{
-  "Dashboard": {
-    "RequireAuthentication": false
-  }
-}
-```
-
-**Production**: Enable authentication and set API key
-```json
-// appsettings.json
-{
-  "Dashboard": {
-    "RequireAuthentication": true,
-    "ApiKey": "your-secure-random-api-key"
-  }
-}
-```
-
-**Access Methods**:
-- Header: `X-Dashboard-ApiKey: your-api-key`
-- Query: `?apikey=your-api-key`
-
-See `src/HookVerse.Dashboard/AUTHENTICATION.md` for detailed authentication guide.
-
-### 4. Real-time Features (T160)
-
-The dashboard includes SignalR integration for live updates:
-
-- **WebhookDelivered** - Notification when webhook is successfully delivered
-- **DeliveryAttempt** - Notification on each delivery attempt
-- **Auto-refresh** - Webhook list updates automatically on changes
-
-SignalR hub endpoint: `/webhookhub`
-
-### 5. Dashboard Status
-
-✅ **Phase 7 Complete (18/18 tasks):**
-- ✅ API client services (T152-T154)
-- ✅ Blazor components (T145-T148)
-- ✅ Blazor pages (T149-T151)
-- ✅ API endpoints (T155-T158)
-- ✅ SignalR hub (T159)
-- ✅ Real-time notifications (T160)
-- ✅ Responsive CSS (T161)
-- ✅ Authentication (T162)
+#### 4. Webhook Details
+Click on any webhook to see:
+- Configuration (URL, events, secret)
+- Delivery history
+- Success/failure trends
+- Recent payloads
 
 ---
 
 ## Troubleshooting
 
-### Database Connection Issues
+### AppHost Won't Start
 
-**Error**: "Could not connect to PostgreSQL"
+**Symptom**: AppHost fails to start or exits immediately
 
-```powershell
-# Check if PostgreSQL is running
-docker compose ps postgres
+**Solutions**:
+1. **Check Docker is running**:
+   ```powershell
+   docker ps
+   ```
+   If this fails, start Docker Desktop
 
-# View logs
-docker compose logs postgres
+2. **Check Aspire workload**:
+   ```powershell
+   dotnet workload list | findstr aspire
+   ```
+   If missing, install it:
+   ```powershell
+   dotnet workload install aspire
+   ```
 
-# Restart PostgreSQL
-docker compose restart postgres
+3. **Check for port conflicts**:
+   ```powershell
+   # Check if port 15888 (Aspire Dashboard) is in use
+   netstat -ano | findstr :15888
+   
+   # Check API port
+   netstat -ano | findstr :5000
+   ```
 
-# Test connection
-docker exec -it hookverse-postgres psql -U hookverse -d hookverse
-```
+4. **Clean and rebuild**:
+   ```powershell
+   dotnet clean
+   dotnet build
+   dotnet run --project src\HookVerse.AppHost
+   ```
 
-### RabbitMQ Connection Issues
+### Container Won't Start
 
-**Error**: "Connection refused to RabbitMQ"
+**Symptom**: PostgreSQL, RabbitMQ, or Redis container fails in Aspire Dashboard
 
-```powershell
-# Check if RabbitMQ is running
-docker compose ps rabbitmq
+**Solutions**:
+1. **View logs in Aspire Dashboard**:
+   - Go to http://localhost:15888
+   - Click **Resources** tab
+   - Click on the failing resource
+   - View **Console Logs** for error messages
 
-# View logs
-docker compose logs rabbitmq
+2. **Check Docker Desktop**:
+   - Open Docker Desktop
+   - Check "Containers" tab
+   - Look for HookVerse-related containers
+   - View logs for failed containers
 
-# Access management UI
-start http://localhost:15672
-# Login: guest/guest
+3. **Remove and restart**:
+   ```powershell
+   # Stop AppHost (Ctrl+C)
+   
+   # Remove containers
+   docker ps -a | findstr hookverse | ForEach-Object { docker rm -f $_.Split()[0] }
+   
+   # Start AppHost again
+   dotnet run --project src\HookVerse.AppHost
+   ```
 
-# Restart RabbitMQ
-docker compose restart rabbitmq
-```
+### Service Discovery Not Working
 
-### Port Already in Use
+**Symptom**: API can't connect to PostgreSQL, RabbitMQ, or Redis
 
-**Error**: "Address already in use: 7001"
+**Solutions**:
+1. **Verify in Aspire Dashboard**:
+   - Go to **Resources** tab
+   - Check all resources show "Running"
+   - Click on a resource → **Environment** tab
+   - Verify connection string environment variables are set
 
-```powershell
-# Find process using port
-netstat -ano | findstr :7001
+2. **Check service logs**:
+   - Go to **Structured Logs** tab
+   - Filter by the failing service
+   - Look for connection errors
 
-# Kill process (use PID from above)
-Stop-Process -Id <PID> -Force
+3. **Restart AppHost**:
+   ```powershell
+   # Ctrl+C to stop
+   dotnet run --project src\HookVerse.AppHost
+   ```
 
-# Or change port in appsettings.json
-```
+### Database Migration Fails
 
-### Migration Issues
+**Symptom**: `dotnet ef database update` fails
 
-**Error**: "Pending migrations"
+**Solutions**:
+1. **Ensure AppHost is running**:
+   ```powershell
+   # In terminal 1:
+   dotnet run --project src\HookVerse.AppHost
+   
+   # Wait for all services to start (check Aspire Dashboard)
+   
+   # In terminal 2:
+   cd src\HookVerse.Infrastructure
+   dotnet ef database update --startup-project ..\HookVerse.Api
+   ```
 
-```powershell
-cd src\HookVerse.Infrastructure
+2. **Check PostgreSQL is healthy**:
+   - Open Aspire Dashboard
+   - Check PostgreSQL resource is "Running"
+   - View logs for any errors
 
-# List migrations
-dotnet ef migrations list --startup-project ..\HookVerse.Api
+3. **Manual connection test**:
+   ```powershell
+   # Find PostgreSQL container
+   docker ps | findstr postgres
+   
+   # Connect to database
+   docker exec -it <container-name> psql -U hookverse -d hookverse
+   ```
 
-# Apply migrations
-dotnet ef database update --startup-project ..\HookVerse.Api
+### Worker Not Processing Messages
 
-# Reset database (WARNING: Data loss!)
-dotnet ef database drop --startup-project ..\HookVerse.Api --force
-dotnet ef database update --startup-project ..\HookVerse.Api
-```
+**Symptom**: Webhooks created but no deliveries happening
 
-### SSL Certificate Issues
+**Solutions**:
+1. **Check Worker logs in Aspire Dashboard**:
+   - Go to **Console Logs** tab
+   - Select `hookverse-worker`
+   - Look for "Connected to RabbitMQ" message
+   - Check for consumption errors
 
-**Error**: "SSL connection could not be established"
+2. **Verify RabbitMQ connection**:
+   - Open RabbitMQ Management UI: http://localhost:15672
+   - Login: guest/guest
+   - Check **Connections** tab
+   - Verify Worker is connected
 
-```powershell
-# Trust development certificate
-dotnet dev-certs https --trust
+3. **Check queue status**:
+   - In RabbitMQ Management UI
+   - Go to **Queues** tab
+   - Look for `webhook-deliveries` queue
+   - Check message count
 
-# Or use HTTP (not recommended for production)
-# Change URLs in appsettings.json to http://
-```
+4. **Restart Worker**:
+   - In Aspire Dashboard → **Resources** tab
+   - Click on `hookverse-worker`
+   - Click **Restart** button
 
-### Worker Not Processing Webhooks
+### Debugging Not Working
 
-**Check Worker is Running:**
+**Symptom**: Breakpoints not hit in VS Code or Visual Studio
 
-```powershell
-# Worker should show:
-# "Connected to RabbitMQ"
-# "Consumer started for queue: webhook-delivery-queue"
+**Solutions**:
+1. **Verify debugger is attached**:
+   - In VS Code: Check debug toolbar shows "Pause/Continue" buttons
+   - In Visual Studio: Check "Debug" menu shows "Continue" (not "Start Debugging")
 
-# If not, check RabbitMQ connection in appsettings.json
-```
+2. **Check build configuration**:
+   ```powershell
+   # Ensure Debug build (not Release)
+   dotnet build --configuration Debug
+   ```
 
-**Check Queue:**
+3. **Set breakpoint correctly**:
+   - Place breakpoint in code that will actually execute
+   - Trigger the code path (e.g., POST to API endpoint)
+   - Check Aspire Dashboard **Traces** to verify request reached the service
 
-1. Open RabbitMQ Management: http://localhost:15672
-2. Navigate to **Queues** tab
-3. Look for `webhook-delivery-queue`
-4. Check message count and consumer count
+4. **Rebuild and restart**:
+   - Stop debugging (Shift+F5)
+   - Clean solution: `dotnet clean`
+   - Build: `dotnet build`
+   - Start debugging (F5)
 
-### API Returns 500 Error
+### Performance Issues
 
-**Check Logs:**
+**Symptom**: Slow startup or sluggish responses
 
-```powershell
-# API logs are output to console
-# Look for stack traces and error messages
+**Solutions**:
+1. **Check Docker resources**:
+   - Docker Desktop → Settings → Resources
+   - Ensure at least:
+     - Memory: 4 GB (8 GB recommended)
+     - CPUs: 2 (4 recommended)
 
-# Enable detailed logging in appsettings.Development.json:
-{
-  "Logging": {
-    "LogLevel": {
-      "Default": "Debug",
-      "Microsoft.AspNetCore": "Information"
-    }
-  }
-}
-```
+2. **View metrics in Aspire Dashboard**:
+   - Go to **Metrics** tab
+   - Check CPU and memory usage per service
+   - Identify bottlenecks
 
-### Docker Services Not Starting
+3. **Check trace timings**:
+   - Go to **Traces** tab
+   - Look for slow operations
+   - Identify database queries or HTTP calls taking too long
 
-```powershell
-# Stop all containers
-docker compose down
+4. **Optimize database**:
+   ```sql
+   -- Connect to PostgreSQL
+   docker exec -it <postgres-container> psql -U hookverse -d hookverse
+   
+   -- Check table sizes
+   SELECT schemaname, tablename, 
+          pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
+   FROM pg_tables
+   WHERE schemaname = 'public'
+   ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+   ```
 
-# Remove volumes (WARNING: Data loss!)
-docker compose down -v
+---
 
-# Rebuild and restart
-docker compose up -d --build
+## Additional Resources
 
-# Check disk space
-docker system df
-
-# Clean up unused resources
-docker system prune -a --volumes
-```
+- **Aspire Documentation**: https://learn.microsoft.com/dotnet/aspire
+- **HookVerse API Guide**: [API-GUIDE.md](API-GUIDE.md)
+- **Development Guide**: [DEVELOPMENT.md](DEVELOPMENT.md)
+- **Deployment Guide**: [DEPLOYMENT.md](DEPLOYMENT.md)
+- **Troubleshooting**: [docs/troubleshooting-aspire.md](docs/troubleshooting-aspire.md)
 
 ---
 
 ## Quick Reference
 
-### Essential URLs
-
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| API (HTTPS) | https://localhost:7001 | - |
-| API Swagger | https://localhost:7001/swagger | - |
-| Dashboard (HTTPS) | https://localhost:7002 | - |
-| RabbitMQ Management | http://localhost:15672 | guest/guest |
-| pgAdmin | http://localhost:5050 | admin@hookverse.local/admin |
-| PostgreSQL | localhost:5432 | hookverse/hookverse123 |
-| Redis | localhost:6379 | - |
-
-### Common Commands
+### Essential Commands
 
 ```powershell
-# Start infrastructure
-docker compose up -d
+# Start everything
+dotnet run --project src\HookVerse.AppHost
 
-# Stop infrastructure
-docker compose down
-
-# Build solution
-dotnet build
+# Apply migrations (AppHost must be running)
+cd src\HookVerse.Infrastructure
+dotnet ef database update --startup-project ..\HookVerse.Api
 
 # Run tests
 dotnet test
 
-# Apply migrations
-cd src\HookVerse.Infrastructure
-dotnet ef database update --startup-project ..\HookVerse.Api
-
-# Run API
-cd src\HookVerse.Api
-dotnet run
-
-# Run Worker
-cd src\HookVerse.Worker
-dotnet run
-
-# Clean build
-dotnet clean
+# Build solution
 dotnet build
+
+# Clean solution
+dotnet clean
 ```
 
-### Environment Variables
+### Essential URLs
 
-```bash
-# .env file for Docker Compose
-POSTGRES_USER=hookverse
-POSTGRES_PASSWORD=hookverse123
-POSTGRES_DB=hookverse
-RABBITMQ_DEFAULT_USER=guest
-RABBITMQ_DEFAULT_PASS=guest
-REDIS_PASSWORD=
-```
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| Aspire Dashboard | http://localhost:15888 | - |
+| API | http://localhost:5000 | - |
+| API Swagger | http://localhost:5000/swagger | - |
+| Dashboard | http://localhost:7000 | - |
+| RabbitMQ Mgmt | http://localhost:15672 | guest/guest |
+
+### Key Directories
+
+| Directory | Purpose |
+|-----------|---------|
+| `src/HookVerse.AppHost` | Aspire orchestration |
+| `src/HookVerse.Api` | REST API |
+| `src/HookVerse.Worker` | Background worker |
+| `src/HookVerse.Dashboard` | Monitoring UI |
+| `tests/` | All test projects |
+| `docs/` | Documentation |
 
 ---
 
-## Next Steps
-
-1. ✅ **Infrastructure is Running** - Docker services are up
-2. ✅ **Database is Ready** - Migrations applied
-3. ✅ **API is Responding** - Swagger UI accessible
-4. ✅ **Worker is Processing** - Connected to RabbitMQ
-5. 🚧 **Dashboard Pending** - Awaiting component implementation
-
-For more information, see:
-- [DEVELOPMENT.md](./DEVELOPMENT.md) - Development workflow
-- [DOCKER.md](./DOCKER.md) - Docker infrastructure details
-- [API Documentation](https://localhost:7001/swagger) - Interactive API docs
-
----
-
-**Questions or Issues?**
-
-Open an issue in the repository or check the troubleshooting section above.
+**Need Help?** Check the [Troubleshooting Guide](docs/troubleshooting-aspire.md) or open an issue on GitHub.
