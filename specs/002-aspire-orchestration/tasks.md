@@ -472,10 +472,10 @@ Phase 3 (US1 - Local Dev Setup) ←─ BLOCKING: Required for all other stories
 
 #### Legacy Cleanup
 
-- [ ] T159 Remove docker-compose.yml from repository root (replaced by Aspire)
-- [ ] T160 Remove start-services.ps1 from repository root (replaced by dotnet run --project AppHost)
-- [ ] T161 Remove start-services.sh from repository root (replaced by dotnet run --project AppHost)
-- [ ] T162 Remove docker/ directory if it contains custom Dockerfiles (use Aspire defaults)
+- [X] T159 Remove docker-compose.yml from repository root (replaced by Aspire)
+- [X] T160 Remove start-services.ps1 from repository root (replaced by dotnet run --project AppHost)
+- [X] T161 Remove start-services.sh from repository root (replaced by dotnet run --project AppHost)
+- [X] T162 Remove docker/ directory if it contains custom Dockerfiles (use Aspire defaults)
 - [X] T163 Update .gitignore to include aspire/manifests/ generated files
 
 #### CI/CD Pipeline Updates
