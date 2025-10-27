@@ -33,7 +33,7 @@ public class ApiKeyService : IApiKeyService
         try
         {
             // Hash the provided API key
-            var hashedKey = HashApiKey(apiKey);
+            var hashedKey = HashApiKeyStatic(apiKey);
 
             // Find the API key in database
             var key = await _apiKeyRepository.FirstOrDefaultAsync(
@@ -77,7 +77,7 @@ public class ApiKeyService : IApiKeyService
             .Replace("=", "")
             .Substring(0, 40); // 40 character API key
 
-        var hashedKey = HashApiKey(apiKey);
+        var hashedKey = HashApiKeyStatic(apiKey);
         var keyPrefix = apiKey.Substring(0, KeyPrefixLength);
 
         var apiKeyEntity = new ApiKey
@@ -98,13 +98,14 @@ public class ApiKeyService : IApiKeyService
         return apiKey;
     }
 
-    public async Task RevokeApiKeyAsync(Guid apiKeyId, CancellationToken cancellationToken = default)
+    public async Task<bool> RevokeApiKeyAsync(Guid apiKeyId, CancellationToken cancellationToken = default)
     {
         var apiKey = await _apiKeyRepository.GetByIdAsync(apiKeyId, cancellationToken);
         
         if (apiKey == null)
         {
-            throw new InvalidOperationException($"API key {apiKeyId} not found");
+            _logger.LogWarning("API key {KeyId} not found for revocation", apiKeyId);
+            return false;
         }
 
         apiKey.IsActive = false;
@@ -114,6 +115,7 @@ public class ApiKeyService : IApiKeyService
         await _apiKeyRepository.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("Revoked API key {KeyId}", apiKeyId);
+        return true;
     }
 
     public async Task<IEnumerable<ApiKeyInfo>> GetApiKeysAsync(Guid tenantId, CancellationToken cancellationToken = default)
@@ -133,7 +135,30 @@ public class ApiKeyService : IApiKeyService
         });
     }
 
-    private static string HashApiKey(string apiKey)
+    public async Task<ApiKey?> GetApiKeyByHashAsync(string hashedKey, CancellationToken cancellationToken = default)
+    {
+        return await _apiKeyRepository.FirstOrDefaultAsync(
+            k => k.HashedKey == hashedKey,
+            cancellationToken);
+    }
+
+    public async Task<List<ApiKey>> GetApiKeysForTenantAsync(Guid tenantId, CancellationToken cancellationToken = default)
+    {
+        var keys = await _apiKeyRepository.FindAsync(
+            k => k.TenantId == tenantId,
+            cancellationToken);
+
+        return keys.ToList();
+    }
+
+    public string HashApiKey(string apiKey)
+    {
+        using var sha256 = SHA256.Create();
+        var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(apiKey));
+        return Convert.ToBase64String(hashBytes);
+    }
+
+    private static string HashApiKeyStatic(string apiKey)
     {
         using var sha256 = SHA256.Create();
         var hashBytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(apiKey));

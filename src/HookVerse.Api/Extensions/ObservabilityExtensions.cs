@@ -17,22 +17,37 @@ public static class ObservabilityExtensions
     /// </summary>
     public static void AddSerilogLogging(this WebApplicationBuilder builder)
     {
-        Log.Logger = new LoggerConfiguration()
+        var logConfig = new LoggerConfiguration()
             .MinimumLevel.Information()
             .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
             .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+            .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
             .MinimumLevel.Override("System", LogEventLevel.Warning)
             .Enrich.FromLogContext()
             .Enrich.WithProperty("Application", "HookVerse.Api")
-            .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName)
-            .WriteTo.Console(
-                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-            .WriteTo.File(
-                "logs/hookverse-.log",
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: 7,
-                outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
-            .CreateLogger();
+            .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName);
+
+        // In development, always write to console for Aspire Dashboard visibility
+        if (builder.Environment.IsDevelopment())
+        {
+            logConfig.WriteTo.Console(
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}");
+        }
+        else
+        {
+            // In production, write to console with structured format for log aggregation
+            logConfig.WriteTo.Console(
+                outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
+        }
+
+        // Always write to file for persistence
+        logConfig.WriteTo.File(
+            "logs/hookverse-.log",
+            rollingInterval: RollingInterval.Day,
+            retainedFileCountLimit: 7,
+            outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}");
+
+        Log.Logger = logConfig.CreateLogger();
 
         builder.Host.UseSerilog();
     }

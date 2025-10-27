@@ -23,9 +23,12 @@ public class ApiKeyAuthenticationMiddleware
 
     public async Task InvokeAsync(HttpContext context, IApiKeyService apiKeyService)
     {
-        // Skip authentication for health checks and Swagger
+        // Skip authentication for health checks, Swagger, and Subscribers endpoint
         var path = context.Request.Path.Value?.ToLowerInvariant() ?? string.Empty;
-        if (path.StartsWith("/health") || path.StartsWith("/swagger") || path.StartsWith("/api-docs"))
+        if (path.StartsWith("/health") || 
+            path.StartsWith("/swagger") || 
+            path.StartsWith("/api-docs") ||
+            path.StartsWith("/api/v1/subscribers"))
         {
             await _next(context);
             return;

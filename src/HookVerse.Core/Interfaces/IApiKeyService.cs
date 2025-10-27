@@ -35,12 +35,27 @@ public interface IApiKeyService
     /// <summary>
     /// Revoke an API key
     /// </summary>
-    Task RevokeApiKeyAsync(Guid apiKeyId, CancellationToken cancellationToken = default);
+    Task<bool> RevokeApiKeyAsync(Guid apiKeyId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get all API keys for a tenant
     /// </summary>
     Task<IEnumerable<ApiKeyInfo>> GetApiKeysAsync(Guid tenantId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get API key by hashed key
+    /// </summary>
+    Task<Core.Entities.ApiKey?> GetApiKeyByHashAsync(string hashedKey, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Get all API keys for a tenant (returns full entities)
+    /// </summary>
+    Task<List<Core.Entities.ApiKey>> GetApiKeysForTenantAsync(Guid tenantId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Hash an API key for storage
+    /// </summary>
+    string HashApiKey(string apiKey);
 }
 
 /// <summary>
