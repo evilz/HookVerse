@@ -59,7 +59,18 @@ public class ConfigurationValidator
     {
         if (_environment.IsDevelopment())
         {
-            // Development: Validate container-based connection strings
+            // Development: Check if running under Aspire orchestration
+            // Aspire injects connection strings at runtime, so we skip validation
+            // to avoid false positives when the AppHost is managing connections
+            var isAspireOrchestrated = IsRunningUnderAspire();
+            
+            if (isAspireOrchestrated)
+            {
+                // Skip validation - Aspire will inject connection strings at runtime
+                return;
+            }
+            
+            // Standalone Development: Validate container-based connection strings
             ValidateRequiredConnectionString("postgres", 
                 "PostgreSQL connection string for Development environment");
             ValidateRequiredConnectionString("rabbitmq", 
@@ -80,6 +91,28 @@ public class ConfigurationValidator
                 "Azure Redis Cache connection string for Production/Staging environment",
                 allowKeyVaultReference: true);
         }
+    }
+    
+    /// <summary>
+    /// Detects if the application is running under Aspire orchestration
+    /// by checking for Aspire-specific environment variables
+    /// </summary>
+    private bool IsRunningUnderAspire()
+    {
+        // Aspire sets specific environment variables when orchestrating services
+        // Check for common Aspire indicators
+        var aspireIndicators = new[]
+        {
+            "DOTNET_ASPIRE_CONTAINER_RUNTIME",      // Set by Aspire for containerized services
+            "ASPNETCORE_HTTPS_PORTS",                // Set by Aspire for HTTPS configuration
+            "ASPNETCORE_HTTP_PORTS",                 // Set by Aspire for HTTP configuration
+            "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EXCEPTION_LOG_ATTRIBUTES", // Aspire OTEL config
+            "OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES"      // Aspire OTEL config
+        };
+        
+        // If any Aspire-specific variable is set, we're likely running under Aspire
+        return aspireIndicators.Any(varName => 
+            !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(varName)));
     }
 
     private void ValidateRequiredConnectionString(string name, string description, bool allowKeyVaultReference = false)
