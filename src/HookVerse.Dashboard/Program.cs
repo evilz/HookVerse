@@ -22,11 +22,18 @@ builder.Services.AddSignalR();
 // Register HttpClient for API calls with service discovery
 // Use Aspire service name "http://api" or fallback to configured URL for non-Aspire scenarios
 var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://api";
+var apiKey = builder.Configuration["ApiSettings:ApiKey"]; // Optional API key for authentication
+
 builder.Services.AddHttpClient<IWebhookApiClient, WebhookApiClient>(client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
-    // TODO: Add authentication headers when implementing API key auth
+    
+    // Add API key header if configured
+    if (!string.IsNullOrWhiteSpace(apiKey))
+    {
+        client.DefaultRequestHeaders.Add("X-API-Key", apiKey);
+    }
 });
 
 var app = builder.Build();
